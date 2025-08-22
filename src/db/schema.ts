@@ -86,9 +86,25 @@ export const createTodoSchema = createInsertSchema(todosTable).omit({
 })
 export const updateTodoSchema = createUpdateSchema(todosTable)
 
+export const selectFolderSchema = createSelectSchema(folders)
+export const createFolderSchema = createInsertSchema(folders).omit({
+  created_at: true,
+})
+export const updateFolderSchema = createUpdateSchema(folders)
+
+export const selectFileSchema = createSelectSchema(files)
+export const createFileSchema = createInsertSchema(files).omit({
+  created_at: true,
+})
+export const updateFileSchema = createUpdateSchema(files)
+
 export type Project = z.infer<typeof selectProjectSchema>
 export type UpdateProject = z.infer<typeof updateProjectSchema>
 export type Todo = z.infer<typeof selectTodoSchema>
 export type UpdateTodo = z.infer<typeof updateTodoSchema>
+export type Folder = z.infer<typeof selectFolderSchema>
+export type UpdateFolder = z.infer<typeof updateFolderSchema>
+export type File = z.infer<typeof selectFileSchema>
+export type UpdateFile = z.infer<typeof updateFileSchema>
 
 export const selectUsersSchema = createSelectSchema(users)
