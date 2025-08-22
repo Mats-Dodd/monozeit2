@@ -5,6 +5,7 @@ import {
   timestamp,
   varchar,
   text,
+  jsonb,
 } from "drizzle-orm/pg-core"
 import type { AnyPgColumn } from "drizzle-orm/pg-core"
 import { createSchemaFactory } from "drizzle-zod"
@@ -49,6 +50,23 @@ export const folders = pgTable("folders", {
     onDelete: "cascade",
   }),
   name: varchar({ length: 255 }).notNull(),
+  created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  updated_at: timestamp({ withTimezone: true })
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date()),
+})
+
+export const files = pgTable("files", {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  project_id: integer("project_id")
+    .notNull()
+    .references(() => projectsTable.id, { onDelete: "cascade" }),
+  folder_id: integer("folder_id")
+    .notNull()
+    .references(() => folders.id, { onDelete: "cascade" }),
+  name: varchar({ length: 255 }).notNull(),
+  content: jsonb("content").notNull(),
   created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   updated_at: timestamp({ withTimezone: true })
     .notNull()
