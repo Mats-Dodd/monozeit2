@@ -6,6 +6,7 @@ import {
   varchar,
   text,
 } from "drizzle-orm/pg-core"
+import type { AnyPgColumn } from "drizzle-orm/pg-core"
 import { createSchemaFactory } from "drizzle-zod"
 import { z } from "zod"
 export * from "./auth-schema"
@@ -37,6 +38,22 @@ export const todosTable = pgTable(`todos`, {
     .notNull()
     .references(() => projectsTable.id, { onDelete: "cascade" }),
   user_ids: text("user_ids").array().notNull().default([]),
+})
+
+export const folders = pgTable("folders", {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  project_id: integer("project_id")
+    .notNull()
+    .references(() => projectsTable.id, { onDelete: "cascade" }),
+  parent_id: integer("parent_id").references((): AnyPgColumn => folders.id, {
+    onDelete: "cascade",
+  }),
+  name: varchar({ length: 255 }).notNull(),
+  created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  updated_at: timestamp({ withTimezone: true })
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date()),
 })
 
 export const selectProjectSchema = createSelectSchema(projectsTable)
