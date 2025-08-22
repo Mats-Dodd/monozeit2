@@ -41,14 +41,17 @@ export const todosTable = pgTable(`todos`, {
   user_ids: text("user_ids").array().notNull().default([]),
 })
 
-export const folders = pgTable("folders", {
+export const foldersTable = pgTable("folders", {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
   project_id: integer("project_id")
     .notNull()
     .references(() => projectsTable.id, { onDelete: "cascade" }),
-  parent_id: integer("parent_id").references((): AnyPgColumn => folders.id, {
-    onDelete: "cascade",
-  }),
+  parent_id: integer("parent_id").references(
+    (): AnyPgColumn => foldersTable.id,
+    {
+      onDelete: "cascade",
+    }
+  ),
   name: varchar({ length: 255 }).notNull(),
   created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   updated_at: timestamp({ withTimezone: true })
@@ -57,14 +60,14 @@ export const folders = pgTable("folders", {
     .$onUpdate(() => new Date()),
 })
 
-export const files = pgTable("files", {
+export const filesTable = pgTable("files", {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
   project_id: integer("project_id")
     .notNull()
     .references(() => projectsTable.id, { onDelete: "cascade" }),
   folder_id: integer("folder_id")
     .notNull()
-    .references(() => folders.id, { onDelete: "cascade" }),
+    .references(() => foldersTable.id, { onDelete: "cascade" }),
   name: varchar({ length: 255 }).notNull(),
   content: jsonb("content").notNull(),
   created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
@@ -86,17 +89,17 @@ export const createTodoSchema = createInsertSchema(todosTable).omit({
 })
 export const updateTodoSchema = createUpdateSchema(todosTable)
 
-export const selectFolderSchema = createSelectSchema(folders)
-export const createFolderSchema = createInsertSchema(folders).omit({
+export const selectFolderSchema = createSelectSchema(foldersTable)
+export const createFolderSchema = createInsertSchema(foldersTable).omit({
   created_at: true,
 })
-export const updateFolderSchema = createUpdateSchema(folders)
+export const updateFolderSchema = createUpdateSchema(foldersTable)
 
-export const selectFileSchema = createSelectSchema(files)
-export const createFileSchema = createInsertSchema(files).omit({
+export const selectFileSchema = createSelectSchema(filesTable)
+export const createFileSchema = createInsertSchema(filesTable).omit({
   created_at: true,
 })
-export const updateFileSchema = createUpdateSchema(files)
+export const updateFileSchema = createUpdateSchema(filesTable)
 
 export type Project = z.infer<typeof selectProjectSchema>
 export type UpdateProject = z.infer<typeof updateProjectSchema>
