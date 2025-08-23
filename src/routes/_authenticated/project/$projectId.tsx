@@ -6,8 +6,9 @@ import {
   todoCollection,
   projectCollection,
   usersCollection,
+  folderCollection,
 } from "@/lib/collections"
-import { type Todo } from "@/db/schema"
+import { type Todo, type Folder } from "@/db/schema"
 
 export const Route = createFileRoute("/_authenticated/project/$projectId")({
   component: ProjectPage,
@@ -15,6 +16,7 @@ export const Route = createFileRoute("/_authenticated/project/$projectId")({
   loader: async () => {
     await projectCollection.preload()
     await todoCollection.preload()
+    await folderCollection.preload()
     return null
   },
 })
@@ -23,6 +25,8 @@ function ProjectPage() {
   const { projectId } = Route.useParams()
   const { data: session } = authClient.useSession()
   const [newTodoText, setNewTodoText] = useState("")
+  const [newFolderName, setNewFolderName] = useState("")
+  const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null)
 
   const { data: todos } = useLiveQuery(
     (q) =>
@@ -32,6 +36,17 @@ function ProjectPage() {
           eq(todoCollection.project_id, parseInt(projectId, 10))
         )
         .orderBy(({ todoCollection }) => todoCollection.created_at),
+    [projectId]
+  )
+
+  const { data: folders } = useLiveQuery(
+    (q) =>
+      q
+        .from({ folderCollection })
+        .where(({ folderCollection }) =>
+          eq(folderCollection.project_id, parseInt(projectId, 10))
+        )
+        .orderBy(({ folderCollection }) => folderCollection.name),
     [projectId]
   )
 
@@ -87,6 +102,48 @@ function ProjectPage() {
     todoCollection.delete(id)
   }
 
+  const addFolder = () => {
+    if (newFolderName.trim()) {
+      folderCollection.insert({
+        id: Math.floor(Math.random() * 100000),
+        project_id: parseInt(projectId),
+        parent_id: selectedFolderId || null,
+        name: newFolderName.trim(),
+        created_at: new Date(),
+        updated_at: new Date(),
+      })
+      setNewFolderName("")
+    }
+  }
+
+  const deleteFolder = (id: number) => {
+    folderCollection.delete(id)
+  }
+
+  const renameFolder = (folder: Folder) => {
+    const newName = prompt("Rename folder:", folder.name)
+    if (newName && newName !== folder.name) {
+      folderCollection.update(folder.id, (draft) => {
+        draft.name = newName
+      })
+    }
+  }
+
+  // Build folder tree structure
+  const buildFolderTree = (
+    folders: Folder[],
+    parentId: number | null = null
+  ): Folder[] => {
+    return folders
+      .filter((f) => f.parent_id === parentId)
+      .map((folder) => ({
+        ...folder,
+        children: buildFolderTree(folders, folder.id),
+      }))
+  }
+
+  const folderTree = folders ? buildFolderTree(folders) : []
+
   if (!project) {
     return <div className="p-6">Project not found</div>
   }
@@ -124,6 +181,56 @@ function ProjectPage() {
         >
           {project.description || "Click to add description..."}
         </p>
+
+        {/* Folders Section */}
+        <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+          <h2 className="text-lg font-semibold text-gray-800 mb-3">Folders</h2>
+
+          <div className="flex gap-2 mb-4">
+            <input
+              type="text"
+              value={newFolderName}
+              onChange={(e) => setNewFolderName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addFolder()}
+              placeholder={
+                selectedFolderId ? "Add subfolder..." : "Add a new folder..."
+              }
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <button
+              onClick={addFolder}
+              className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500"
+            >
+              Add Folder
+            </button>
+            {selectedFolderId && (
+              <button
+                onClick={() => setSelectedFolderId(null)}
+                className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
+              >
+                Root
+              </button>
+            )}
+          </div>
+
+          {/* Folder Tree Component */}
+          <div className="space-y-1">
+            {folderTree.length === 0 ? (
+              <p className="text-gray-500 text-sm">
+                No folders yet. Create one above!
+              </p>
+            ) : (
+              <FolderTreeView
+                folders={folderTree}
+                level={0}
+                selectedFolderId={selectedFolderId}
+                onSelectFolder={setSelectedFolderId}
+                onDeleteFolder={deleteFolder}
+                onRenameFolder={renameFolder}
+              />
+            )}
+          </div>
+        </div>
 
         <div className="flex gap-2 mb-4">
           <input
@@ -232,6 +339,70 @@ function ProjectPage() {
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+// Folder Tree Component
+function FolderTreeView({
+  folders,
+  level,
+  selectedFolderId,
+  onSelectFolder,
+  onDeleteFolder,
+  onRenameFolder,
+}: {
+  folders: Folder[]
+  level: number
+  selectedFolderId: number | null
+  onSelectFolder: (id: number | null) => void
+  onDeleteFolder: (id: number) => void
+  onRenameFolder: (folder: Folder) => void
+}) {
+  return (
+    <div className={`${level > 0 ? "ml-4" : ""}`}>
+      {folders.map((folder) => (
+        <div key={folder.id} className="space-y-1">
+          <div
+            className={`flex items-center gap-2 p-2 rounded cursor-pointer hover:bg-gray-100 ${
+              selectedFolderId === folder.id ? "bg-blue-100" : ""
+            }`}
+          >
+            <span className="flex-1" onClick={() => onSelectFolder(folder.id)}>
+              {level > 0 && <span className="text-gray-400 mr-1">└</span>}
+              📁 {folder.name}
+            </span>
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onRenameFolder(folder)
+              }}
+              className="px-2 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded"
+            >
+              Rename
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onDeleteFolder(folder.id)
+              }}
+              className="px-2 py-1 text-sm text-red-600 hover:bg-red-50 rounded"
+            >
+              Delete
+            </button>
+          </div>
+          {folder.children && folder.children.length > 0 && (
+            <FolderTreeView
+              folders={folder.children}
+              level={level + 1}
+              selectedFolderId={selectedFolderId}
+              onSelectFolder={onSelectFolder}
+              onDeleteFolder={onDeleteFolder}
+              onRenameFolder={onRenameFolder}
+            />
+          )}
+        </div>
+      ))}
     </div>
   )
 }
