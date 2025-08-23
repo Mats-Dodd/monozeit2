@@ -1,5 +1,6 @@
 {
-  "include": ["**/*.ts", "**/*.tsx"],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "*.ts", "*.config.ts"],
+  "exclude": ["node_modules", "dist", "build", ".vite"],
   "compilerOptions": {
     "target": "ES2022",
     "jsx": "react-jsx",
