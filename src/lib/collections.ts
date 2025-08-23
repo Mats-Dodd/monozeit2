@@ -4,6 +4,8 @@ import {
   selectTodoSchema,
   selectProjectSchema,
   selectUsersSchema,
+  selectFolderSchema,
+  selectFileSchema,
 } from "@/db/schema"
 import { trpc } from "@/lib/trpc-client"
 
@@ -127,6 +129,112 @@ export const todoCollection = createCollection(
       const { original: deletedTodo } = transaction.mutations[0]
       const result = await trpc.todos.delete.mutate({
         id: deletedTodo.id,
+      })
+
+      return { txid: result.txid }
+    },
+  })
+)
+
+export const folderCollection = createCollection(
+  electricCollectionOptions({
+    id: "folders",
+    shapeOptions: {
+      url: new URL(
+        `/api/folders`,
+        typeof window !== `undefined`
+          ? window.location.origin
+          : `http://localhost:5173`
+      ).toString(),
+      parser: {
+        // Parse timestamp columns into JavaScript Date objects
+        timestamptz: (date: string) => {
+          return new Date(date)
+        },
+      },
+    },
+    schema: selectFolderSchema,
+    getKey: (item) => item.id,
+    onInsert: async ({ transaction }) => {
+      const { modified: newFolder } = transaction.mutations[0]
+      const result = await trpc.folders.create.mutate({
+        project_id: newFolder.project_id,
+        parent_id: newFolder.parent_id,
+        name: newFolder.name,
+      })
+
+      return { txid: result.txid }
+    },
+    onUpdate: async ({ transaction }) => {
+      const { modified: updatedFolder } = transaction.mutations[0]
+      const result = await trpc.folders.update.mutate({
+        id: updatedFolder.id,
+        data: {
+          parent_id: updatedFolder.parent_id,
+          name: updatedFolder.name,
+        },
+      })
+
+      return { txid: result.txid }
+    },
+    onDelete: async ({ transaction }) => {
+      const { original: deletedFolder } = transaction.mutations[0]
+      const result = await trpc.folders.delete.mutate({
+        id: deletedFolder.id,
+      })
+
+      return { txid: result.txid }
+    },
+  })
+)
+
+export const fileCollection = createCollection(
+  electricCollectionOptions({
+    id: "files",
+    shapeOptions: {
+      url: new URL(
+        `/api/files`,
+        typeof window !== `undefined`
+          ? window.location.origin
+          : `http://localhost:5173`
+      ).toString(),
+      parser: {
+        // Parse timestamp columns into JavaScript Date objects
+        timestamptz: (date: string) => {
+          return new Date(date)
+        },
+      },
+    },
+    schema: selectFileSchema,
+    getKey: (item) => item.id,
+    onInsert: async ({ transaction }) => {
+      const { modified: newFile } = transaction.mutations[0]
+      const result = await trpc.files.create.mutate({
+        project_id: newFile.project_id,
+        folder_id: newFile.folder_id,
+        name: newFile.name,
+        content: newFile.content,
+      })
+
+      return { txid: result.txid }
+    },
+    onUpdate: async ({ transaction }) => {
+      const { modified: updatedFile } = transaction.mutations[0]
+      const result = await trpc.files.update.mutate({
+        id: updatedFile.id,
+        data: {
+          folder_id: updatedFile.folder_id,
+          name: updatedFile.name,
+          content: updatedFile.content,
+        },
+      })
+
+      return { txid: result.txid }
+    },
+    onDelete: async ({ transaction }) => {
+      const { original: deletedFile } = transaction.mutations[0]
+      const result = await trpc.files.delete.mutate({
+        id: deletedFile.id,
       })
 
       return { txid: result.txid }
