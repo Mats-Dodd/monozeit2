@@ -24,12 +24,12 @@ interface AppSidebarProps {
     }
   }
   projects: Array<{
-    id: number
+    id: string
     name: string
     description: string | null
     owner_id: string
     shared_user_ids: string[]
-    created_at: Date
+    created_at?: Date
   }>
   showNewProjectForm: boolean
   setShowNewProjectForm: (show: boolean) => void
@@ -113,7 +113,7 @@ export function AppSidebar({
                   <SidebarMenuButton asChild>
                     <Link
                       to="/project/$projectId"
-                      params={{ projectId: project.id.toString() }}
+                      params={{ projectId: project.id }}
                     >
                       <FolderIcon className="size-4" />
                       <span>{project.name}</span>

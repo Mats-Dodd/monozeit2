@@ -8,10 +8,19 @@ import {
   folderCollection,
   fileCollection,
 } from "@/lib/collections"
-import { type Folder, type File } from "@/db/schema"
+import type { UIFolder, UIFile } from "@/services/types"
+import {
+  createFolder,
+  deleteFolder as deleteFolderSvc,
+  updateFolder,
+} from "@/services/folders"
+import {
+  createFile,
+  deleteFile as deleteFileSvc,
+  updateFile,
+} from "@/services/files"
 
-// Type for folders with nested children
-type FolderWithChildren = Folder & { children: FolderWithChildren[] }
+type FolderWithChildren = UIFolder & { children: FolderWithChildren[] }
 
 export const Route = createFileRoute("/_authenticated/project/$projectId")({
   component: ProjectPage,
@@ -28,9 +37,9 @@ function ProjectPage() {
   const { projectId } = Route.useParams()
   const { data: session } = authClient.useSession()
   const [newFolderName, setNewFolderName] = useState("")
-  const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null)
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null)
   const [newFileName, setNewFileName] = useState("")
-  const [editingFileId, setEditingFileId] = useState<number | null>(null)
+  const [editingFileId, setEditingFileId] = useState<string | null>(null)
   const [fileContent, setFileContent] = useState("")
 
   const { data: folders } = useLiveQuery(
@@ -38,7 +47,7 @@ function ProjectPage() {
       q
         .from({ folderCollection })
         .where(({ folderCollection }) =>
-          eq(folderCollection.project_id, parseInt(projectId, 10))
+          eq(folderCollection.project_id, projectId)
         )
         .orderBy(({ folderCollection }) => folderCollection.name),
     [projectId]
@@ -48,9 +57,7 @@ function ProjectPage() {
     (q) =>
       q
         .from({ fileCollection })
-        .where(({ fileCollection }) =>
-          eq(fileCollection.project_id, parseInt(projectId, 10))
-        )
+        .where(({ fileCollection }) => eq(fileCollection.project_id, projectId))
         .orderBy(({ fileCollection }) => fileCollection.name),
     [projectId]
   )
@@ -62,7 +69,7 @@ function ProjectPage() {
     (q) =>
       q
         .from({ projects: projectCollection })
-        .where(({ projects }) => eq(projects.id, parseInt(projectId, 10)))
+        .where(({ projects }) => eq(projects.id, projectId))
         .fn.select(({ projects }) => ({
           users: projects.shared_user_ids.concat(projects.owner_id),
           owner: projects.owner_id,
@@ -75,79 +82,65 @@ function ProjectPage() {
     (q) =>
       q
         .from({ projectCollection })
-        .where(({ projectCollection }) =>
-          eq(projectCollection.id, parseInt(projectId, 10))
-        ),
+        .where(({ projectCollection }) => eq(projectCollection.id, projectId)),
     [projectId]
   )
   const project = projects[0]
 
   const addFolder = () => {
     if (newFolderName.trim()) {
-      folderCollection.insert({
-        id: Math.floor(Math.random() * 100000),
-        project_id: parseInt(projectId),
-        parent_id: selectedFolderId || null,
+      void createFolder({
+        projectId,
         name: newFolderName.trim(),
-        created_at: new Date(),
-        updated_at: new Date(),
+        parentId: selectedFolderId || null,
       })
       setNewFolderName("")
     }
   }
 
-  const deleteFolder = (id: number) => {
-    folderCollection.delete(id)
+  const deleteFolder = (id: string) => {
+    void deleteFolderSvc(id)
   }
 
-  const renameFolder = (folder: Folder) => {
+  const renameFolder = (folder: UIFolder) => {
     const newName = prompt("Rename folder:", folder.name)
     if (newName && newName !== folder.name) {
-      folderCollection.update(folder.id, (draft) => {
-        draft.name = newName
-      })
+      void updateFolder({ id: folder.id, name: newName })
     }
   }
 
   // File CRUD operations
   const addFile = () => {
     if (newFileName.trim() && selectedFolderId) {
-      fileCollection.insert({
-        id: Math.floor(Math.random() * 100000),
-        project_id: parseInt(projectId),
-        folder_id: selectedFolderId,
+      void createFile({
+        projectId,
+        folderId: selectedFolderId,
         name: newFileName.trim(),
-        content: { text: "" }, // Start with empty content
-        created_at: new Date(),
-        updated_at: new Date(),
+        content: { text: "" },
       })
       setNewFileName("")
     }
   }
 
-  const deleteFile = (id: number) => {
-    fileCollection.delete(id)
+  const deleteFile = (id: string) => {
+    void deleteFileSvc(id)
   }
 
-  const renameFile = (file: File) => {
+  const renameFile = (file: UIFile) => {
     const newName = prompt("Rename file:", file.name)
     if (newName && newName !== file.name) {
-      fileCollection.update(file.id, (draft) => {
-        draft.name = newName
-      })
+      void updateFile({ id: file.id, name: newName })
     }
   }
 
-  const editFile = (file: File) => {
+  const editFile = (file: UIFile) => {
     setEditingFileId(file.id)
     setFileContent((file.content as { text: string }).text || "")
   }
 
   const saveFileContent = () => {
     if (editingFileId !== null) {
-      fileCollection.update(editingFileId, (draft) => {
-        draft.content = { text: fileContent }
-      })
+      void updateFile({ id: editingFileId, content: { text: fileContent } })
       setEditingFileId(null)
       setFileContent("")
     }
@@ -155,8 +148,8 @@ function ProjectPage() {
 
   // Build folder tree structure
   const buildFolderTree = (
-    folders: Folder[],
-    parentId: number | null = null
+    folders: UIFolder[],
+    parentId: string | null = null
   ): FolderWithChildren[] => {
     return folders
       .filter((f) => f.parent_id === parentId)
@@ -424,10 +417,10 @@ function FolderTreeView({
 }: {
   folders: FolderWithChildren[]
   level: number
-  selectedFolderId: number | null
-  onSelectFolder: (id: number | null) => void
-  onDeleteFolder: (id: number) => void
-  onRenameFolder: (folder: Folder) => void
+  selectedFolderId: string | null
+  onSelectFolder: (id: string | null) => void
+  onDeleteFolder: (id: string) => void
+  onRenameFolder: (folder: UIFolder) => void
 }) {
   return (
     <div className={`${level > 0 ? "ml-4" : ""}`}>

@@ -1,0 +1,24 @@
+---
+globs: *.ts,*.tsx
+description: CRUD via services with UUID ids, Zod schemas, and mappers
+---
+
+# CRUD Services Usage
+
+- Always use the service layer for mutations. Do not call collections or TRPC directly from UI.
+  - Projects: [src/services/projects.ts](mdc:src/services/projects.ts) — `createProject`, `updateProject`, `deleteProject`
+  - Folders: [src/services/folders.ts](mdc:src/services/folders.ts) — `createFolder`, `updateFolder`, `deleteFolder`
+  - Files: [src/services/files.ts](mdc:src/services/files.ts) — `createFile`, `updateFile`, `deleteFile`
+
+- IDs are string UUIDs
+  - Generate with [src/services/ids.ts](mdc:src/services/ids.ts) → `generateId()`
+  - All PK/FK columns are `uuid`; pass ids as strings throughout UI, services, TRPC
+
+- Validation and mapping
+  - Validate DB-shaped payloads with Drizzle-Zod schemas from [src/db/schema.ts](mdc:src/db/schema.ts)
+  - Map UI input → DB payload with [src/services/mappers.ts](mdc:src/services/mappers.ts)
+  - For partial updates, use `assignDefined` from [src/services/util.ts](mdc:src/services/util.ts)
+
+- UI-facing input types live in [src/services/types.ts](mdc:src/services/types.ts)
+  - `ProjectCreateUI`, `ProjectUpdateUIPatch`, `FolderCreateUI`, `FolderUpdateUIPatch`, `FileCreateUI`, `FileUpdateUIPatch`
+

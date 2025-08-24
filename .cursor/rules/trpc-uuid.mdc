@@ -1,0 +1,16 @@
+---
+globs: src/lib/trpc/**/*.ts,src/routes/**/*.ts,src/routes/**/*.tsx
+description: Enforce string UUID ids across TRPC routers and routes
+---
+
+# TRPC and Routing UUID Rules
+
+- IDs are `string` UUIDs end-to-end.
+  - Routers validate with `z.string().uuid()` (see [src/lib/trpc/projects.ts](mdc:src/lib/trpc/projects.ts), [src/lib/trpc/folders.ts](mdc:src/lib/trpc/folders.ts), [src/lib/trpc/files.ts](mdc:src/lib/trpc/files.ts)).
+  - Ensure route params like `$projectId` are treated as strings and passed through without number parsing.
+
+- When constructing links or calling mutations, pass ids as strings; never cast to number.
+  - Example: `to={"/project/" + project.id}` rather than converting types.
+
+- Collections bridge to TRPC via onInsert/onUpdate/onDelete and expect UUIDs — see [src/lib/collections.ts](mdc:src/lib/collections.ts).
+

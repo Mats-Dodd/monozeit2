@@ -1,0 +1,20 @@
+---
+alwaysApply: true
+---
+
+# TypeScript Style Rules
+
+- Prefer explicit function signatures for exported/public APIs; avoid `any`.
+- Use descriptive names: functions as verbs, variables as nouns; avoid 1–2 char names.
+- Use early returns and handle error/edge cases first; avoid deep nesting.
+- Keep comments short and explain "why"; avoid trivial comments.
+- Match existing formatting; do not reformat unrelated code.
+- For partial updates, prefer small helpers (e.g., `assignDefined`).
+# TypeScript Style Rules
+
+- Prefer explicit function signatures for exported/public APIs; avoid `any`.
+- Use descriptive names: functions as verbs, variables as nouns; avoid 1–2 char names.
+- Use early returns and handle error/edge cases first; avoid deep nesting.
+- Keep comments short and explain "why"; avoid trivial comments.
+- Match existing formatting; do not reformat unrelated code.
+- For partial updates, prefer small helpers (e.g., `assignDefined`).

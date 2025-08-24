@@ -1,0 +1,23 @@
+---
+alwaysApply: true
+---
+
+# Project Structure Guide
+
+- UI and routing
+  - Router: [src/router.tsx](mdc:src/router.tsx)
+  - Routes: [src/routes](mdc:src/routes) (e.g., project view at [src/routes/_authenticated/project/$projectId.tsx](mdc:src/routes/_authenticated/project/$projectId.tsx))
+
+- Data and state
+  - Client collections (Electric/TanStack DB): [src/lib/collections.ts](mdc:src/lib/collections.ts)
+  - Service layer for CRUD: [src/services/projects.ts](mdc:src/services/projects.ts), [src/services/folders.ts](mdc:src/services/folders.ts), [src/services/files.ts](mdc:src/services/files.ts)
+  - UI input types and helpers: [src/services/types.ts](mdc:src/services/types.ts), mappers at [src/services/mappers.ts](mdc:src/services/mappers.ts), id generation at [src/services/ids.ts](mdc:src/services/ids.ts)
+
+- Server and persistence
+  - TRPC routers: [src/lib/trpc/projects.ts](mdc:src/lib/trpc/projects.ts), [src/lib/trpc/folders.ts](mdc:src/lib/trpc/folders.ts), [src/lib/trpc/files.ts](mdc:src/lib/trpc/files.ts)
+  - HTTP shape endpoints for Electric: [src/routes/api](mdc:src/routes/api)
+  - Database schema (Drizzle + Zod): [src/db/schema.ts](mdc:src/db/schema.ts)
+
+- Typical data flow
+  - UI → Service (UUIDs, validation, mapping) → Collection mutation → TRPC call (server) → Drizzle/Postgres
+

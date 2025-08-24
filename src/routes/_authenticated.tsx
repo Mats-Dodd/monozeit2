@@ -10,6 +10,8 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
+import { createProject } from "@/services/projects"
+import type { ProjectCreateUI } from "@/services/types"
 
 export const Route = createFileRoute("/_authenticated")({
   component: AuthenticatedLayout,
@@ -31,13 +33,13 @@ function AuthenticatedLayout() {
     if (session && projects && !isLoading) {
       const hasProject = projects.length > 0
       if (!hasProject) {
-        projectCollection.insert({
-          id: Math.floor(Math.random() * 100000),
+        void createProject({
           name: "Default",
+          ownerId: session.user.id,
           description: "Default project",
-          owner_id: session.user.id,
           shared_user_ids: [],
-          created_at: new Date(),
+        } satisfies ProjectCreateUI).then((id) => {
+          navigate({ to: "/project/$projectId", params: { projectId: id } })
         })
       }
     }
@@ -50,13 +52,13 @@ function AuthenticatedLayout() {
 
   const handleCreateProject = () => {
     if (newProjectName.trim() && session) {
-      projectCollection.insert({
-        id: Math.floor(Math.random() * 100000),
+      void createProject({
         name: newProjectName.trim(),
+        ownerId: session.user.id,
         description: "",
-        owner_id: session.user.id,
         shared_user_ids: [],
-        created_at: new Date(),
+      } satisfies ProjectCreateUI).then((id) => {
+        navigate({ to: "/project/$projectId", params: { projectId: id } })
       })
       setNewProjectName("")
       setShowNewProjectForm(false)

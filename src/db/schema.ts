@@ -1,10 +1,10 @@
 import {
-  integer,
   pgTable,
   timestamp,
   varchar,
   text,
   jsonb,
+  uuid,
 } from "drizzle-orm/pg-core"
 import type { AnyPgColumn } from "drizzle-orm/pg-core"
 import { createSchemaFactory } from "drizzle-zod"
@@ -16,7 +16,7 @@ const { createInsertSchema, createSelectSchema, createUpdateSchema } =
   createSchemaFactory({ zodInstance: z })
 
 export const projectsTable = pgTable(`projects`, {
-  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  id: uuid("id").primaryKey().notNull(),
   name: varchar({ length: 255 }).notNull(),
   description: text(),
   shared_user_ids: text("shared_user_ids").array().notNull().default([]),
@@ -27,16 +27,13 @@ export const projectsTable = pgTable(`projects`, {
 })
 
 export const foldersTable = pgTable("folders", {
-  id: integer().primaryKey().generatedAlwaysAsIdentity(),
-  project_id: integer("project_id")
+  id: uuid("id").primaryKey().notNull(),
+  project_id: uuid("project_id")
     .notNull()
     .references(() => projectsTable.id, { onDelete: "cascade" }),
-  parent_id: integer("parent_id").references(
-    (): AnyPgColumn => foldersTable.id,
-    {
-      onDelete: "cascade",
-    }
-  ),
+  parent_id: uuid("parent_id").references((): AnyPgColumn => foldersTable.id, {
+    onDelete: "cascade",
+  }),
   name: varchar({ length: 255 }).notNull(),
   created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   updated_at: timestamp({ withTimezone: true })
@@ -46,11 +43,11 @@ export const foldersTable = pgTable("folders", {
 })
 
 export const filesTable = pgTable("files", {
-  id: integer().primaryKey().generatedAlwaysAsIdentity(),
-  project_id: integer("project_id")
+  id: uuid("id").primaryKey().notNull(),
+  project_id: uuid("project_id")
     .notNull()
     .references(() => projectsTable.id, { onDelete: "cascade" }),
-  folder_id: integer("folder_id")
+  folder_id: uuid("folder_id")
     .notNull()
     .references(() => foldersTable.id, { onDelete: "cascade" }),
   name: varchar({ length: 255 }).notNull(),
