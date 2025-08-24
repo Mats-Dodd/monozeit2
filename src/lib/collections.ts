@@ -1,7 +1,6 @@
 import { createCollection } from "@tanstack/react-db"
 import { electricCollectionOptions } from "@tanstack/electric-db-collection"
 import {
-  selectTodoSchema,
   selectProjectSchema,
   selectUsersSchema,
   selectFolderSchema,
@@ -75,60 +74,6 @@ export const projectCollection = createCollection(
       const { original: deletedProject } = transaction.mutations[0]
       const result = await trpc.projects.delete.mutate({
         id: deletedProject.id,
-      })
-
-      return { txid: result.txid }
-    },
-  })
-)
-
-export const todoCollection = createCollection(
-  electricCollectionOptions({
-    id: "todos",
-    shapeOptions: {
-      url: new URL(
-        `/api/todos`,
-        typeof window !== `undefined`
-          ? window.location.origin
-          : `http://localhost:5173`
-      ).toString(),
-      parser: {
-        // Parse timestamp columns into JavaScript Date objects
-        timestamptz: (date: string) => {
-          return new Date(date)
-        },
-      },
-    },
-    schema: selectTodoSchema,
-    getKey: (item) => item.id,
-    onInsert: async ({ transaction }) => {
-      const { modified: newTodo } = transaction.mutations[0]
-      const result = await trpc.todos.create.mutate({
-        user_id: newTodo.user_id,
-        text: newTodo.text,
-        completed: newTodo.completed,
-        project_id: newTodo.project_id,
-        user_ids: newTodo.user_ids,
-      })
-
-      return { txid: result.txid }
-    },
-    onUpdate: async ({ transaction }) => {
-      const { modified: updatedTodo } = transaction.mutations[0]
-      const result = await trpc.todos.update.mutate({
-        id: updatedTodo.id,
-        data: {
-          text: updatedTodo.text,
-          completed: updatedTodo.completed,
-        },
-      })
-
-      return { txid: result.txid }
-    },
-    onDelete: async ({ transaction }) => {
-      const { original: deletedTodo } = transaction.mutations[0]
-      const result = await trpc.todos.delete.mutate({
-        id: deletedTodo.id,
       })
 
       return { txid: result.txid }

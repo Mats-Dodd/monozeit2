@@ -1,5 +1,4 @@
 import {
-  boolean,
   integer,
   pgTable,
   timestamp,
@@ -25,20 +24,6 @@ export const projectsTable = pgTable(`projects`, {
   owner_id: text("owner_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-})
-
-export const todosTable = pgTable(`todos`, {
-  id: integer().primaryKey().generatedAlwaysAsIdentity(),
-  text: varchar({ length: 500 }).notNull(),
-  completed: boolean().notNull().default(false),
-  created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
-  user_id: text("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  project_id: integer("project_id")
-    .notNull()
-    .references(() => projectsTable.id, { onDelete: "cascade" }),
-  user_ids: text("user_ids").array().notNull().default([]),
 })
 
 export const foldersTable = pgTable("folders", {
@@ -83,12 +68,6 @@ export const createProjectSchema = createInsertSchema(projectsTable).omit({
 })
 export const updateProjectSchema = createUpdateSchema(projectsTable)
 
-export const selectTodoSchema = createSelectSchema(todosTable)
-export const createTodoSchema = createInsertSchema(todosTable).omit({
-  created_at: true,
-})
-export const updateTodoSchema = createUpdateSchema(todosTable)
-
 export const selectFolderSchema = createSelectSchema(foldersTable)
 export const createFolderSchema = createInsertSchema(foldersTable).omit({
   created_at: true,
@@ -103,8 +82,6 @@ export const updateFileSchema = createUpdateSchema(filesTable)
 
 export type Project = z.infer<typeof selectProjectSchema>
 export type UpdateProject = z.infer<typeof updateProjectSchema>
-export type Todo = z.infer<typeof selectTodoSchema>
-export type UpdateTodo = z.infer<typeof updateTodoSchema>
 export type Folder = z.infer<typeof selectFolderSchema>
 export type UpdateFolder = z.infer<typeof updateFolderSchema>
 export type File = z.infer<typeof selectFileSchema>
