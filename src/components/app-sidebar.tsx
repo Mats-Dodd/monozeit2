@@ -32,6 +32,7 @@ import {
 import { useMemo, useRef, useState } from "react"
 import { createProject } from "@/services/projects"
 import type { ProjectCreateUI } from "@/services/types"
+import { AppFileTree } from "@/components/app-filetree"
 
 interface AppSidebarProps {
   session: {
@@ -144,6 +145,19 @@ export function AppSidebar({
                 <SelectItem value="__create__">Create new…</SelectItem>
               </SelectContent>
             </Select>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Files</SidebarGroupLabel>
+          <SidebarGroupContent>
+            {selectedProjectId ? (
+              <AppFileTree projectId={selectedProjectId} />
+            ) : (
+              <div className="text-xs text-muted-foreground px-2 py-1">
+                Select a project to view files
+              </div>
+            )}
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
