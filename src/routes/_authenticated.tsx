@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import { Outlet } from "@tanstack/react-router"
 import { authClient } from "@/lib/auth-client"
 import { useLiveQuery } from "@tanstack/react-db"
@@ -21,8 +21,6 @@ export const Route = createFileRoute("/_authenticated")({
 function AuthenticatedLayout() {
   const { data: session, isPending } = authClient.useSession()
   const navigate = useNavigate()
-  const [showNewProjectForm, setShowNewProjectForm] = useState(false)
-  const [newProjectName, setNewProjectName] = useState("")
 
   const { data: projects, isLoading } = useLiveQuery((q) =>
     q.from({ projectCollection })
@@ -50,20 +48,7 @@ function AuthenticatedLayout() {
     navigate({ to: "/login" })
   }
 
-  const handleCreateProject = () => {
-    if (newProjectName.trim() && session) {
-      void createProject({
-        name: newProjectName.trim(),
-        ownerId: session.user.id,
-        description: "",
-        shared_user_ids: [],
-      } satisfies ProjectCreateUI).then((id) => {
-        navigate({ to: "/project/$projectId", params: { projectId: id } })
-      })
-      setNewProjectName("")
-      setShowNewProjectForm(false)
-    }
-  }
+  // Inline project creation moved into AppSidebar dialog
 
   if (isPending) {
     return null
@@ -78,11 +63,6 @@ function AuthenticatedLayout() {
       <AppSidebar
         session={session}
         projects={projects}
-        showNewProjectForm={showNewProjectForm}
-        setShowNewProjectForm={setShowNewProjectForm}
-        newProjectName={newProjectName}
-        setNewProjectName={setNewProjectName}
-        handleCreateProject={handleCreateProject}
         handleLogout={handleLogout}
       />
 
