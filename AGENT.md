@@ -1,59 +1,136 @@
-# TanStack Start + DB + Electric Starter
+# CLAUDE.md
 
-This is a TanStack Start project with tRPC v10 for mutations and Electric sync for reads, running on Start's server functions so it's easily deployable to many hosting platforms.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-All reads from the Postgres database are done via the Electric sync engine. All mutations (create, update, delete) are done via tRPC with full end-to-end type safety.
+## Development Commands
 
-We sync normalized data from tables into TanStack DB collections in the client & then write client-side queries for displaying data in components.
+**Primary Development:**
 
-## Initial setup
-
-Before you started, all necessary package install is done via `pnpm install` and a dev server is started with `pnpm dev`.
-
-## Linting and formatting
-
-Human devs have IDEs that autoformat code on every file save. After you edit files, you must do the equivalent by running `pnpm lint`.
-
-This command will also report linter errors that were not automatically fixable. Use your judgement as to which of the linter violations should be fixed.
-
-## Build/Test Commands
-
-- `pnpm run dev` - Start development server with Docker services
-- `pnpm run build` - Build for production
-- `pnpm run test` - Run all Vitest tests
-- `vitest run <test-file>` - Run single test file
+- `pnpm run dev` - Start development server with Docker services (Postgres + Electric)
+- `pnpm run migrate` - Run database migrations (required after starting dev)
+- `pnpm run build` - Build for production (includes migrations)
 - `pnpm run start` - Start production server
 
-## Architecture
+**Database Management:**
 
-- **Frontend**: TanStack Start (SSR framework for React and other frameworks) with file-based routing in `src/routes/`
-- **Database**: PostgreSQL with Drizzle ORM, schema in `src/db/schema.ts`
-- **Electric**: Real-time sync service on port 3000
-- **Services**: Docker Compose setup (Postgres on 54321, Electric on 3000)
-- **Styling**: Tailwind CSS v4
+- `pnpm run generate` - Generate new migration files with drizzle-kit
+- `pnpm run migrate` - Apply pending migrations
+
+**Code Quality:**
+
+- `pnpm run lint` - Run ESLint with auto-fix (run after editing files)
+- `pnpm run lint:check` - Check linting without fixes
+- `pnpm run format` - Format code with Prettier
+- `pnpm run format:check` - Check formatting without changes
+
+**Testing:**
+
+- `pnpm run test` - Run all tests (currently placeholder)
+
+## Architecture Overview
+
+This is a TanStack Start application with local-first architecture using Electric SQL for real-time sync.
+
+**Core Stack:**
+
+- **Frontend**: TanStack Start (React SSR framework) with file-based routing
+- **Database**: PostgreSQL with Drizzle ORM, Electric SQL sync engine
+- **State Management**: TanStack DB collections with Electric sync
+- **API**: tRPC v10 for mutations, Electric shapes for reads
 - **Authentication**: better-auth
-- **API**: tRPC v10 for mutations with full e2e type safety, Electric shapes for real-time reads
+- **Styling**: Tailwind CSS v4
 
-## API Routing
+**Data Flow Pattern:**
 
-- **tRPC** (`/api/trpc/*`) - All mutations (create, update, delete) with full type safety
-- **better-auth** (`/api/auth/*`) - Authentication endpoints
-- **Electric shapes** (`/api/projects`, `/api/todos`, `/api/users`) - Real-time sync endpoints for reads
+- **Reads**: Electric sync → TanStack DB collections → React components
+- **Writes**: React → TanStack DB optimistic updates → tRPC mutations → PostgreSQL → Electric sync
 
-## Code Style
+## Key File Structure
 
-- **TypeScript**: Strict mode, ES2022 target, bundler module resolution
-- **Imports**: Use `@/*` path aliases for `src/` directory imports
-- **Components**: React 19 with JSX transform, functional components preferred
-- **Server DB**: Drizzle ORM with PostgreSQL dialect, schema-first approach
-- **Client DB**: TanStack DB with Electric Sync Collections
-- **Routing**: File-based with TanStack Router, use `Link` component for navigation
-- **Testing**: Vitest with @testing-library/react for component tests
-- **file names** should always use kebab-case
+```
+src/
+├── db/
+│   ├── schema.ts           # Drizzle schema + Zod validation
+│   ├── connection.ts       # Database connection
+│   └── out/               # Generated migrations
+├── lib/
+│   ├── collections.ts      # TanStack DB + Electric collections
+│   ├── trpc-client.ts     # tRPC client configuration
+│   ├── auth.ts            # Authentication setup
+│   └── trpc/              # tRPC route handlers
+├── routes/
+│   ├── __root.tsx         # Root layout
+│   ├── _authenticated/    # Protected routes
+│   └── api/               # API endpoints
+├── services/              # Service to handle all crud and type definitions for data flowing into UI components.
+```
 
-## tRPC Integration
+## Development Environment
 
-- tRPC routers are defined in `src/lib/trpc/` directory
-- Client is configured in `src/lib/trpc-client.ts`
-- Collection hooks use tRPC client for mutations in `src/lib/collections.ts`
-- Transaction IDs are generated using `pg_current_xact_id()::xid::text` for Electric sync compatibility
+**Prerequisites:**
+
+- Docker (for Postgres + Electric services)
+- Caddy server installed and `caddy trust` executed for local HTTPS
+- `.env` file copied from `.env.example`
+
+**Local URLs:**
+
+- Application: `https://tanstack-start-db-electric-starter.localhost/`
+- Electric sync: `http://localhost:3000`
+- Postgres: `localhost:54321`
+
+## Code Conventions
+
+**Naming:**
+
+- File names: kebab-case
+- Import paths: Use `@/*` aliases for `src/` directory
+
+**TypeScript:**
+
+- Strict mode enabled
+- Use Drizzle schema for server types
+- Use Zod schemas for validation
+
+**Database:**
+
+- Schema-first approach with Drizzle
+- Migrations in `src/db/out/`
+- Transaction IDs: `pg_current_xact_id()::xid::text` for Electric compatibility
+
+**Collections:**
+
+- Define in `src/lib/collections.ts`
+- Use Electric shapes for reads
+- tRPC mutations with txid return for sync
+- Do not call collections directly, use the service layer
+
+**Components:**
+
+- React 19 functional components
+- Use TanStack Router `Link` component for navigation
+- Live queries with `useLiveQuery` for reactive data
+
+## Important Notes
+
+- Always run `pnpm run lint` and npx tsc --noEmit after editing files
+- Database migrations run automatically during build
+- Electric sync requires specific transaction ID format for mutations
+- Authentication routes are handled by better-auth at `/api/auth/*`
+
+## Typescript Rules
+
+- Use kebab-case for all file names
+- prefer function over const for functions
+- use Array<T> instead of T[] for Arrays
+- use idiomatic React
+- Always look for components we already have and reuse them
+- Only one component per file
+  -Use Zod for validation
+  -Use camelCase for schemas and add Schema suffix to all
+
+## CRUD Development workflow
+
+- All CRUD flows through the service layer
+- On the client use the input types in src/services/types.ts and call helpers like createProject, updateFolder, and deleteFile; pass session.user.id as ownerId and note created_at is optional.
+  The database and routers now use UUID PK/FKs, so ensure all routes/links and TRPC calls pass ids as strings, and use assignDefined for partial updates.
