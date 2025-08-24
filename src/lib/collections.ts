@@ -49,6 +49,7 @@ export const projectCollection = createCollection(
     onInsert: async ({ transaction }) => {
       const { modified: newProject } = transaction.mutations[0]
       const result = await trpc.projects.create.mutate({
+        id: newProject.id,
         name: newProject.name,
         description: newProject.description,
         owner_id: newProject.owner_id,
@@ -103,6 +104,7 @@ export const folderCollection = createCollection(
     onInsert: async ({ transaction }) => {
       const { modified: newFolder } = transaction.mutations[0]
       const result = await trpc.folders.create.mutate({
+        id: newFolder.id,
         project_id: newFolder.project_id,
         parent_id: newFolder.parent_id,
         name: newFolder.name,
@@ -155,6 +157,7 @@ export const fileCollection = createCollection(
     onInsert: async ({ transaction }) => {
       const { modified: newFile } = transaction.mutations[0]
       const result = await trpc.files.create.mutate({
+        id: newFile.id,
         project_id: newFile.project_id,
         folder_id: newFile.folder_id,
         name: newFile.name,

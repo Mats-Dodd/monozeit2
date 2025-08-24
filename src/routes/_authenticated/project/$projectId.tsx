@@ -28,9 +28,9 @@ function ProjectPage() {
   const { projectId } = Route.useParams()
   const { data: session } = authClient.useSession()
   const [newFolderName, setNewFolderName] = useState("")
-  const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null)
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null)
   const [newFileName, setNewFileName] = useState("")
-  const [editingFileId, setEditingFileId] = useState<number | null>(null)
+  const [editingFileId, setEditingFileId] = useState<string | null>(null)
   const [fileContent, setFileContent] = useState("")
 
   const { data: folders } = useLiveQuery(
@@ -38,7 +38,7 @@ function ProjectPage() {
       q
         .from({ folderCollection })
         .where(({ folderCollection }) =>
-          eq(folderCollection.project_id, parseInt(projectId, 10))
+          eq(folderCollection.project_id, projectId)
         )
         .orderBy(({ folderCollection }) => folderCollection.name),
     [projectId]
@@ -48,9 +48,7 @@ function ProjectPage() {
     (q) =>
       q
         .from({ fileCollection })
-        .where(({ fileCollection }) =>
-          eq(fileCollection.project_id, parseInt(projectId, 10))
-        )
+        .where(({ fileCollection }) => eq(fileCollection.project_id, projectId))
         .orderBy(({ fileCollection }) => fileCollection.name),
     [projectId]
   )
@@ -62,7 +60,7 @@ function ProjectPage() {
     (q) =>
       q
         .from({ projects: projectCollection })
-        .where(({ projects }) => eq(projects.id, parseInt(projectId, 10)))
+        .where(({ projects }) => eq(projects.id, projectId))
         .fn.select(({ projects }) => ({
           users: projects.shared_user_ids.concat(projects.owner_id),
           owner: projects.owner_id,
@@ -75,9 +73,7 @@ function ProjectPage() {
     (q) =>
       q
         .from({ projectCollection })
-        .where(({ projectCollection }) =>
-          eq(projectCollection.id, parseInt(projectId, 10))
-        ),
+        .where(({ projectCollection }) => eq(projectCollection.id, projectId)),
     [projectId]
   )
   const project = projects[0]
@@ -85,8 +81,8 @@ function ProjectPage() {
   const addFolder = () => {
     if (newFolderName.trim()) {
       folderCollection.insert({
-        id: Math.floor(Math.random() * 100000),
-        project_id: parseInt(projectId),
+        id: crypto.randomUUID(),
+        project_id: projectId,
         parent_id: selectedFolderId || null,
         name: newFolderName.trim(),
         created_at: new Date(),
@@ -96,7 +92,7 @@ function ProjectPage() {
     }
   }
 
-  const deleteFolder = (id: number) => {
+  const deleteFolder = (id: string) => {
     folderCollection.delete(id)
   }
 
@@ -113,8 +109,8 @@ function ProjectPage() {
   const addFile = () => {
     if (newFileName.trim() && selectedFolderId) {
       fileCollection.insert({
-        id: Math.floor(Math.random() * 100000),
-        project_id: parseInt(projectId),
+        id: crypto.randomUUID(),
+        project_id: projectId,
         folder_id: selectedFolderId,
         name: newFileName.trim(),
         content: { text: "" }, // Start with empty content
@@ -125,7 +121,7 @@ function ProjectPage() {
     }
   }
 
-  const deleteFile = (id: number) => {
+  const deleteFile = (id: string) => {
     fileCollection.delete(id)
   }
 
@@ -156,7 +152,7 @@ function ProjectPage() {
   // Build folder tree structure
   const buildFolderTree = (
     folders: Folder[],
-    parentId: number | null = null
+    parentId: string | null = null
   ): FolderWithChildren[] => {
     return folders
       .filter((f) => f.parent_id === parentId)
@@ -424,9 +420,9 @@ function FolderTreeView({
 }: {
   folders: FolderWithChildren[]
   level: number
-  selectedFolderId: number | null
-  onSelectFolder: (id: number | null) => void
-  onDeleteFolder: (id: number) => void
+  selectedFolderId: string | null
+  onSelectFolder: (id: string | null) => void
+  onDeleteFolder: (id: string) => void
   onRenameFolder: (folder: Folder) => void
 }) {
   return (

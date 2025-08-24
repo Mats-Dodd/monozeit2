@@ -32,7 +32,7 @@ function AuthenticatedLayout() {
       const hasProject = projects.length > 0
       if (!hasProject) {
         projectCollection.insert({
-          id: Math.floor(Math.random() * 100000),
+          id: crypto.randomUUID(),
           name: "Default",
           description: "Default project",
           owner_id: session.user.id,
@@ -51,7 +51,7 @@ function AuthenticatedLayout() {
   const handleCreateProject = () => {
     if (newProjectName.trim() && session) {
       projectCollection.insert({
-        id: Math.floor(Math.random() * 100000),
+        id: crypto.randomUUID(),
         name: newProjectName.trim(),
         description: "",
         owner_id: session.user.id,

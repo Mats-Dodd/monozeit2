@@ -26,7 +26,7 @@ export const filesRouter = router({
   update: authedProcedure
     .input(
       z.object({
-        id: z.number(),
+        id: z.string().uuid(),
         data: updateFileSchema,
       })
     )
@@ -54,7 +54,7 @@ export const filesRouter = router({
     }),
 
   delete: authedProcedure
-    .input(z.object({ id: z.number() }))
+    .input(z.object({ id: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const result = await ctx.db.transaction(async (tx) => {
         const txid = await generateTxId(tx)
