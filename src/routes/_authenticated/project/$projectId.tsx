@@ -8,7 +8,7 @@ import {
   folderCollection,
   fileCollection,
 } from "@/lib/collections"
-import type { Folder as DbFolder, File as DbFile } from "@/db/schema"
+import type { UIFolder, UIFile } from "@/services/types"
 import {
   createFolder,
   deleteFolder as deleteFolderSvc,
@@ -20,15 +20,6 @@ import {
   updateFile,
 } from "@/services/files"
 
-// UI types with optional timestamps to match relaxed client schemas
-type UIFolder = Omit<DbFolder, "created_at" | "updated_at"> & {
-  created_at?: Date
-  updated_at?: Date
-}
-type UIFile = Omit<DbFile, "created_at" | "updated_at"> & {
-  created_at?: Date
-  updated_at?: Date
-}
 type FolderWithChildren = UIFolder & { children: FolderWithChildren[] }
 
 export const Route = createFileRoute("/_authenticated/project/$projectId")({
