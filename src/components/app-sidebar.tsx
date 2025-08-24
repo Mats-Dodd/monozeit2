@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router"
+import { useMatch, useNavigate } from "@tanstack/react-router"
 import {
   Sidebar,
   SidebarContent,
@@ -13,7 +13,25 @@ import {
 } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { FolderIcon, PlusIcon, UserIcon } from "lucide-react"
+import { FolderIcon, UserIcon } from "lucide-react"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { useMemo, useRef, useState } from "react"
+import { createProject } from "@/services/projects"
+import type { ProjectCreateUI } from "@/services/types"
 
 interface AppSidebarProps {
   session: {
@@ -31,24 +49,65 @@ interface AppSidebarProps {
     shared_user_ids: string[]
     created_at?: Date
   }>
-  showNewProjectForm: boolean
-  setShowNewProjectForm: (show: boolean) => void
-  newProjectName: string
-  setNewProjectName: (name: string) => void
-  handleCreateProject: () => void
   handleLogout: () => void
 }
 
 export function AppSidebar({
   session,
   projects,
-  showNewProjectForm,
-  setShowNewProjectForm,
-  newProjectName,
-  setNewProjectName,
-  handleCreateProject,
   handleLogout,
 }: AppSidebarProps) {
+  const navigate = useNavigate()
+  const match = useMatch({
+    from: "/_authenticated/project/$projectId",
+    shouldThrow: false,
+  })
+  const currentRouteProjectId = (
+    match?.params as { projectId?: string } | undefined
+  )?.projectId
+
+  const selectedProjectId = useMemo(() => {
+    if (currentRouteProjectId) return currentRouteProjectId
+    if (projects.length > 0) return projects[0]!.id
+    return undefined
+  }, [currentRouteProjectId, projects])
+
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [newProjectName, setNewProjectName] = useState("")
+  const previousSelectedIdRef = useRef<string | undefined>(selectedProjectId)
+  const newProjectInputRef = useRef<HTMLInputElement | null>(null)
+
+  const selectedProjectName = useMemo(() => {
+    const found = projects.find((p) => p.id === selectedProjectId)
+    return found?.name ?? "Select project"
+  }, [projects, selectedProjectId])
+
+  const handleSelectChange = (value: string) => {
+    if (value === "__create__") {
+      previousSelectedIdRef.current = selectedProjectId
+      const active = document.activeElement as HTMLElement | null
+      active?.blur()
+      setIsCreateOpen(true)
+      return
+    }
+    navigate({ to: "/project/$projectId", params: { projectId: value } })
+  }
+
+  const handleCreate = () => {
+    const name = newProjectName.trim()
+    if (!name) return
+    void createProject({
+      name,
+      ownerId: session.user.id,
+      description: "",
+      shared_user_ids: [],
+    } satisfies ProjectCreateUI).then((id) => {
+      setIsCreateOpen(false)
+      setNewProjectName("")
+      navigate({ to: "/project/$projectId", params: { projectId: id } })
+    })
+  }
+
   return (
     <Sidebar>
       <SidebarHeader>
@@ -65,63 +124,26 @@ export function AppSidebar({
 
       <SidebarContent>
         <SidebarGroup>
-          <div className="flex items-center justify-between">
-            <SidebarGroupLabel>Projects</SidebarGroupLabel>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-4 p-0 hover:bg-sidebar-accent"
-              onClick={() => setShowNewProjectForm(!showNewProjectForm)}
-            >
-              <PlusIcon className="size-4" />
-            </Button>
-          </div>
-
+          <SidebarGroupLabel>Project</SidebarGroupLabel>
           <SidebarGroupContent>
-            {showNewProjectForm && (
-              <div className="mb-2 space-y-2">
-                <Input
-                  value={newProjectName}
-                  onChange={(e) => setNewProjectName(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleCreateProject()}
-                  placeholder="Project name"
-                  className="h-8"
-                />
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    onClick={handleCreateProject}
-                    className="h-7 px-2"
-                  >
-                    Create
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setShowNewProjectForm(false)}
-                    className="h-7 px-2"
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            <SidebarMenu>
-              {projects.map((project) => (
-                <SidebarMenuItem key={project.id}>
-                  <SidebarMenuButton asChild>
-                    <Link
-                      to="/project/$projectId"
-                      params={{ projectId: project.id }}
-                    >
-                      <FolderIcon className="size-4" />
-                      <span>{project.name}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
+            <Select
+              value={selectedProjectId}
+              onValueChange={handleSelectChange}
+            >
+              <SelectTrigger className="w-full justify-between">
+                <SelectValue placeholder="Select project">
+                  <span className="truncate">{selectedProjectName}</span>
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {projects.map((project) => (
+                  <SelectItem key={project.id} value={project.id}>
+                    {project.name}
+                  </SelectItem>
+                ))}
+                <SelectItem value="__create__">Create new…</SelectItem>
+              </SelectContent>
+            </Select>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
@@ -149,6 +171,47 @@ export function AppSidebar({
           Sign out
         </Button>
       </SidebarFooter>
+
+      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+        <DialogContent
+          onOpenAutoFocus={(e) => {
+            e.preventDefault()
+            newProjectInputRef.current?.focus()
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle>Create project</DialogTitle>
+            <DialogDescription>
+              Name your new project to get started.
+            </DialogDescription>
+          </DialogHeader>
+          <div>
+            <Input
+              value={newProjectName}
+              ref={newProjectInputRef}
+              placeholder="Project name"
+              onChange={(e) => setNewProjectName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleCreate()
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsCreateOpen(false)
+                setNewProjectName("")
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleCreate} disabled={!newProjectName.trim()}>
+              Create
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Sidebar>
   )
 }
