@@ -1,41 +1,32 @@
-import { z } from "zod"
 import { folderCollection } from "@/lib/collections"
 import { generateId } from "./ids"
 import { assignDefined } from "./util"
+import { createFolderSchema, updateFolderSchema } from "@/db/schema"
+import { toDbFolderCreate, toDbFolderUpdate } from "./mappers"
 
-const CreateFolderArgs = z.object({
-  id: z.string().uuid().optional(),
-  projectId: z.string().uuid(),
-  name: z.string().min(1),
-  parentId: z.string().uuid().nullable().optional(),
-})
-
-const UpdateFolderArgs = z.object({
-  id: z.string().uuid(),
-  name: z.string().optional(),
-  parentId: z.string().uuid().nullable().optional(),
-})
-
-export async function createFolder(
-  args: z.input<typeof CreateFolderArgs>
-): Promise<string> {
-  const a = CreateFolderArgs.parse(args)
-  const id = a.id ?? generateId()
-  folderCollection.insert({
-    id,
-    project_id: a.projectId,
-    parent_id: a.parentId ?? null,
-    name: a.name,
-  })
+export async function createFolder(args: {
+  id?: string
+  projectId: string
+  name: string
+  parentId?: string | null
+}): Promise<string> {
+  const id = args.id ?? generateId()
+  const dbPayload = toDbFolderCreate({ ...args, id })
+  createFolderSchema.parse(dbPayload)
+  folderCollection.insert(dbPayload)
   return id
 }
 
-export async function updateFolder(
-  args: z.input<typeof UpdateFolderArgs>
-): Promise<void> {
-  const a = UpdateFolderArgs.parse(args)
-  folderCollection.update(a.id, (draft) => {
-    assignDefined(draft, { name: a.name, parent_id: a.parentId })
+export async function updateFolder(args: {
+  id: string
+  name?: string
+  parentId?: string | null
+}): Promise<void> {
+  const { id, ...rest } = args
+  const dbPatch = toDbFolderUpdate(rest)
+  updateFolderSchema.pick({ name: true, parent_id: true }).parse(dbPatch)
+  folderCollection.update(id, (draft) => {
+    assignDefined(draft, { name: dbPatch.name, parent_id: dbPatch.parent_id })
   })
 }
 
