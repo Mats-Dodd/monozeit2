@@ -9,6 +9,16 @@ import {
   fileCollection,
 } from "@/lib/collections"
 import { type Folder, type File } from "@/db/schema"
+import {
+  useCreateFolder,
+  useDeleteFolder,
+  useUpdateFolder,
+} from "@/services/folders.mutations"
+import {
+  useCreateFile,
+  useDeleteFile,
+  useUpdateFile,
+} from "@/services/files.mutations"
 
 // Type for folders with nested children
 type FolderWithChildren = Folder & { children: FolderWithChildren[] }
@@ -32,6 +42,12 @@ function ProjectPage() {
   const [newFileName, setNewFileName] = useState("")
   const [editingFileId, setEditingFileId] = useState<string | null>(null)
   const [fileContent, setFileContent] = useState("")
+  const [createFolder] = useCreateFolder()
+  const [updateFolder] = useUpdateFolder()
+  const [deleteFolderMutate] = useDeleteFolder()
+  const [createFile] = useCreateFile()
+  const [updateFile] = useUpdateFile()
+  const [deleteFileMutate] = useDeleteFile()
 
   const { data: folders } = useLiveQuery(
     (q) =>
@@ -80,57 +96,47 @@ function ProjectPage() {
 
   const addFolder = () => {
     if (newFolderName.trim()) {
-      folderCollection.insert({
-        id: crypto.randomUUID(),
-        project_id: projectId,
-        parent_id: selectedFolderId || null,
+      void createFolder({
+        projectId,
         name: newFolderName.trim(),
-        created_at: new Date(),
-        updated_at: new Date(),
+        parentId: selectedFolderId || null,
       })
       setNewFolderName("")
     }
   }
 
   const deleteFolder = (id: string) => {
-    folderCollection.delete(id)
+    void deleteFolderMutate(id)
   }
 
   const renameFolder = (folder: Folder) => {
     const newName = prompt("Rename folder:", folder.name)
     if (newName && newName !== folder.name) {
-      folderCollection.update(folder.id, (draft) => {
-        draft.name = newName
-      })
+      void updateFolder({ id: folder.id, name: newName })
     }
   }
 
   // File CRUD operations
   const addFile = () => {
     if (newFileName.trim() && selectedFolderId) {
-      fileCollection.insert({
-        id: crypto.randomUUID(),
-        project_id: projectId,
-        folder_id: selectedFolderId,
+      void createFile({
+        projectId,
+        folderId: selectedFolderId,
         name: newFileName.trim(),
-        content: { text: "" }, // Start with empty content
-        created_at: new Date(),
-        updated_at: new Date(),
+        content: { text: "" },
       })
       setNewFileName("")
     }
   }
 
   const deleteFile = (id: string) => {
-    fileCollection.delete(id)
+    void deleteFileMutate(id)
   }
 
   const renameFile = (file: File) => {
     const newName = prompt("Rename file:", file.name)
     if (newName && newName !== file.name) {
-      fileCollection.update(file.id, (draft) => {
-        draft.name = newName
-      })
+      void updateFile({ id: file.id, name: newName })
     }
   }
 
@@ -141,9 +147,7 @@ function ProjectPage() {
 
   const saveFileContent = () => {
     if (editingFileId !== null) {
-      fileCollection.update(editingFileId, (draft) => {
-        draft.content = { text: fileContent }
-      })
+      void updateFile({ id: editingFileId, content: { text: fileContent } })
       setEditingFileId(null)
       setFileContent("")
     }

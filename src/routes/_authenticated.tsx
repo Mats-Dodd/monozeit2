@@ -10,6 +10,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
+import { useCreateProject } from "@/services/projects.mutations"
 
 export const Route = createFileRoute("/_authenticated")({
   component: AuthenticatedLayout,
@@ -21,6 +22,7 @@ function AuthenticatedLayout() {
   const navigate = useNavigate()
   const [showNewProjectForm, setShowNewProjectForm] = useState(false)
   const [newProjectName, setNewProjectName] = useState("")
+  const [createProject] = useCreateProject()
 
   const { data: projects, isLoading } = useLiveQuery((q) =>
     q.from({ projectCollection })
@@ -31,13 +33,13 @@ function AuthenticatedLayout() {
     if (session && projects && !isLoading) {
       const hasProject = projects.length > 0
       if (!hasProject) {
-        projectCollection.insert({
-          id: crypto.randomUUID(),
+        void createProject({
           name: "Default",
+          ownerId: session.user.id,
           description: "Default project",
-          owner_id: session.user.id,
           shared_user_ids: [],
-          created_at: new Date(),
+        }).then((id) => {
+          navigate({ to: "/project/$projectId", params: { projectId: id } })
         })
       }
     }
@@ -50,13 +52,13 @@ function AuthenticatedLayout() {
 
   const handleCreateProject = () => {
     if (newProjectName.trim() && session) {
-      projectCollection.insert({
-        id: crypto.randomUUID(),
+      void createProject({
         name: newProjectName.trim(),
+        ownerId: session.user.id,
         description: "",
-        owner_id: session.user.id,
         shared_user_ids: [],
-        created_at: new Date(),
+      }).then((id) => {
+        navigate({ to: "/project/$projectId", params: { projectId: id } })
       })
       setNewProjectName("")
       setShowNewProjectForm(false)
