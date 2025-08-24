@@ -1,0 +1,10 @@
+---
+alwaysApply: true
+---
+# Operational Guardrails
+
+- Never perform git operations unless explicitly told to
+- Prefer absolute paths in tool calls (workspace is `/Users/matthewdodd/Documents/projects/stones`).
+- When running commands, assume non-interactive flags and avoid pagers.
+- Do not introduce or modify unrelated files; keep edits scoped.
+
