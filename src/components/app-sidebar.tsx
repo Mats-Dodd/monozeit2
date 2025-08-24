@@ -1,4 +1,4 @@
-import { Link, useMatch, useNavigate } from "@tanstack/react-router"
+import { useMatch, useNavigate } from "@tanstack/react-router"
 import {
   Sidebar,
   SidebarContent,
@@ -75,6 +75,7 @@ export function AppSidebar({
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [newProjectName, setNewProjectName] = useState("")
   const previousSelectedIdRef = useRef<string | undefined>(selectedProjectId)
+  const newProjectInputRef = useRef<HTMLInputElement | null>(null)
 
   const selectedProjectName = useMemo(() => {
     const found = projects.find((p) => p.id === selectedProjectId)
@@ -84,6 +85,8 @@ export function AppSidebar({
   const handleSelectChange = (value: string) => {
     if (value === "__create__") {
       previousSelectedIdRef.current = selectedProjectId
+      const active = document.activeElement as HTMLElement | null
+      active?.blur()
       setIsCreateOpen(true)
       return
     }
@@ -143,27 +146,6 @@ export function AppSidebar({
             </Select>
           </SidebarGroupContent>
         </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel>Projects</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {projects.map((project) => (
-                <SidebarMenuItem key={project.id}>
-                  <SidebarMenuButton asChild>
-                    <Link
-                      to="/project/$projectId"
-                      params={{ projectId: project.id }}
-                    >
-                      <FolderIcon className="size-4" />
-                      <span>{project.name}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
       </SidebarContent>
 
       <SidebarFooter>
@@ -191,7 +173,12 @@ export function AppSidebar({
       </SidebarFooter>
 
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent>
+        <DialogContent
+          onOpenAutoFocus={(e) => {
+            e.preventDefault()
+            newProjectInputRef.current?.focus()
+          }}
+        >
           <DialogHeader>
             <DialogTitle>Create project</DialogTitle>
             <DialogDescription>
@@ -201,7 +188,7 @@ export function AppSidebar({
           <div>
             <Input
               value={newProjectName}
-              autoFocus
+              ref={newProjectInputRef}
               placeholder="Project name"
               onChange={(e) => setNewProjectName(e.target.value)}
               onKeyDown={(e) => {
