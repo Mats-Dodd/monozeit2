@@ -1,11 +1,7 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router"
 import { useLiveQuery } from "@tanstack/react-db"
 import { useEffect } from "react"
-import {
-  folderCollection,
-  projectCollection,
-  todoCollection,
-} from "@/lib/collections"
+import { folderCollection, projectCollection } from "@/lib/collections"
 import { authClient } from "@/lib/auth-client"
 
 export const Route = createFileRoute(`/_authenticated/`)({
@@ -27,7 +23,6 @@ export const Route = createFileRoute(`/_authenticated/`)({
   },
   loader: async () => {
     await projectCollection.preload()
-    await todoCollection.preload()
     await folderCollection.preload()
 
     return null

@@ -16,7 +16,6 @@ import { Route as AuthenticatedRouteImport } from "./routes/_authenticated"
 import { Route as AuthenticatedIndexRouteImport } from "./routes/_authenticated/index"
 import { Route as AuthenticatedProjectProjectIdRouteImport } from "./routes/_authenticated/project/$projectId"
 import { ServerRoute as ApiUsersServerRouteImport } from "./routes/api/users"
-import { ServerRoute as ApiTodosServerRouteImport } from "./routes/api/todos"
 import { ServerRoute as ApiProjectsServerRouteImport } from "./routes/api/projects"
 import { ServerRoute as ApiFoldersServerRouteImport } from "./routes/api/folders"
 import { ServerRoute as ApiFilesServerRouteImport } from "./routes/api/files"
@@ -48,11 +47,6 @@ const AuthenticatedProjectProjectIdRoute =
 const ApiUsersServerRoute = ApiUsersServerRouteImport.update({
   id: "/api/users",
   path: "/api/users",
-  getParentRoute: () => rootServerRouteImport,
-} as any)
-const ApiTodosServerRoute = ApiTodosServerRouteImport.update({
-  id: "/api/todos",
-  path: "/api/todos",
   getParentRoute: () => rootServerRouteImport,
 } as any)
 const ApiProjectsServerRoute = ApiProjectsServerRouteImport.update({
@@ -120,7 +114,6 @@ export interface FileServerRoutesByFullPath {
   "/api/files": typeof ApiFilesServerRoute
   "/api/folders": typeof ApiFoldersServerRoute
   "/api/projects": typeof ApiProjectsServerRoute
-  "/api/todos": typeof ApiTodosServerRoute
   "/api/users": typeof ApiUsersServerRoute
   "/api/trpc/$": typeof ApiTrpcSplatServerRoute
 }
@@ -129,7 +122,6 @@ export interface FileServerRoutesByTo {
   "/api/files": typeof ApiFilesServerRoute
   "/api/folders": typeof ApiFoldersServerRoute
   "/api/projects": typeof ApiProjectsServerRoute
-  "/api/todos": typeof ApiTodosServerRoute
   "/api/users": typeof ApiUsersServerRoute
   "/api/trpc/$": typeof ApiTrpcSplatServerRoute
 }
@@ -139,7 +131,6 @@ export interface FileServerRoutesById {
   "/api/files": typeof ApiFilesServerRoute
   "/api/folders": typeof ApiFoldersServerRoute
   "/api/projects": typeof ApiProjectsServerRoute
-  "/api/todos": typeof ApiTodosServerRoute
   "/api/users": typeof ApiUsersServerRoute
   "/api/trpc/$": typeof ApiTrpcSplatServerRoute
 }
@@ -150,7 +141,6 @@ export interface FileServerRouteTypes {
     | "/api/files"
     | "/api/folders"
     | "/api/projects"
-    | "/api/todos"
     | "/api/users"
     | "/api/trpc/$"
   fileServerRoutesByTo: FileServerRoutesByTo
@@ -159,7 +149,6 @@ export interface FileServerRouteTypes {
     | "/api/files"
     | "/api/folders"
     | "/api/projects"
-    | "/api/todos"
     | "/api/users"
     | "/api/trpc/$"
   id:
@@ -168,7 +157,6 @@ export interface FileServerRouteTypes {
     | "/api/files"
     | "/api/folders"
     | "/api/projects"
-    | "/api/todos"
     | "/api/users"
     | "/api/trpc/$"
   fileServerRoutesById: FileServerRoutesById
@@ -178,7 +166,6 @@ export interface RootServerRouteChildren {
   ApiFilesServerRoute: typeof ApiFilesServerRoute
   ApiFoldersServerRoute: typeof ApiFoldersServerRoute
   ApiProjectsServerRoute: typeof ApiProjectsServerRoute
-  ApiTodosServerRoute: typeof ApiTodosServerRoute
   ApiUsersServerRoute: typeof ApiUsersServerRoute
   ApiTrpcSplatServerRoute: typeof ApiTrpcSplatServerRoute
 }
@@ -222,13 +209,6 @@ declare module "@tanstack/react-start/server" {
       path: "/api/users"
       fullPath: "/api/users"
       preLoaderRoute: typeof ApiUsersServerRouteImport
-      parentRoute: typeof rootServerRouteImport
-    }
-    "/api/todos": {
-      id: "/api/todos"
-      path: "/api/todos"
-      fullPath: "/api/todos"
-      preLoaderRoute: typeof ApiTodosServerRouteImport
       parentRoute: typeof rootServerRouteImport
     }
     "/api/projects": {
@@ -295,7 +275,6 @@ const rootServerRouteChildren: RootServerRouteChildren = {
   ApiFilesServerRoute: ApiFilesServerRoute,
   ApiFoldersServerRoute: ApiFoldersServerRoute,
   ApiProjectsServerRoute: ApiProjectsServerRoute,
-  ApiTodosServerRoute: ApiTodosServerRoute,
   ApiUsersServerRoute: ApiUsersServerRoute,
   ApiTrpcSplatServerRoute: ApiTrpcSplatServerRoute,
 }

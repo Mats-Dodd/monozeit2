@@ -2,7 +2,6 @@ import { createServerFileRoute } from "@tanstack/react-start/server"
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch"
 import { router } from "@/lib/trpc"
 import { projectsRouter } from "@/lib/trpc/projects"
-import { todosRouter } from "@/lib/trpc/todos"
 import { usersRouter } from "@/lib/trpc/users"
 import { foldersRouter } from "@/lib/trpc/folders"
 import { filesRouter } from "@/lib/trpc/files"
@@ -11,7 +10,6 @@ import { auth } from "@/lib/auth"
 
 export const appRouter = router({
   projects: projectsRouter,
-  todos: todosRouter,
   users: usersRouter,
   folders: foldersRouter,
   files: filesRouter,
