@@ -7,6 +7,7 @@ import {
   selectFileSchema,
 } from "@/db/schema"
 import { trpc } from "@/lib/trpc-client"
+import { z } from "zod"
 
 export const usersCollection = createCollection(
   electricCollectionOptions({
@@ -28,6 +29,10 @@ export const usersCollection = createCollection(
     getKey: (item) => item.id,
   })
 )
+const projectClientSchema = selectProjectSchema.extend({
+  created_at: z.date().optional(),
+})
+
 export const projectCollection = createCollection(
   electricCollectionOptions({
     id: "projects",
@@ -44,7 +49,7 @@ export const projectCollection = createCollection(
         },
       },
     },
-    schema: selectProjectSchema,
+    schema: projectClientSchema,
     getKey: (item) => item.id,
     onInsert: async ({ transaction }) => {
       const { modified: newProject } = transaction.mutations[0]
@@ -99,7 +104,10 @@ export const folderCollection = createCollection(
         },
       },
     },
-    schema: selectFolderSchema,
+    schema: selectFolderSchema.extend({
+      created_at: z.date().optional(),
+      updated_at: z.date().optional(),
+    }),
     getKey: (item) => item.id,
     onInsert: async ({ transaction }) => {
       const { modified: newFolder } = transaction.mutations[0]
@@ -152,7 +160,10 @@ export const fileCollection = createCollection(
         },
       },
     },
-    schema: selectFileSchema,
+    schema: selectFileSchema.extend({
+      created_at: z.date().optional(),
+      updated_at: z.date().optional(),
+    }),
     getKey: (item) => item.id,
     onInsert: async ({ transaction }) => {
       const { modified: newFile } = transaction.mutations[0]

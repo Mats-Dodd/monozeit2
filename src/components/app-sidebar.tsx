@@ -29,7 +29,7 @@ interface AppSidebarProps {
     description: string | null
     owner_id: string
     shared_user_ids: string[]
-    created_at: Date
+    created_at?: Date
   }>
   showNewProjectForm: boolean
   setShowNewProjectForm: (show: boolean) => void

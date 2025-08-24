@@ -8,20 +8,28 @@ import {
   folderCollection,
   fileCollection,
 } from "@/lib/collections"
-import { type Folder, type File } from "@/db/schema"
+import type { Folder as DbFolder, File as DbFile } from "@/db/schema"
 import {
-  useCreateFolder,
-  useDeleteFolder,
-  useUpdateFolder,
-} from "@/services/folders.mutations"
+  createFolder,
+  deleteFolder as deleteFolderSvc,
+  updateFolder,
+} from "@/services/folders"
 import {
-  useCreateFile,
-  useDeleteFile,
-  useUpdateFile,
-} from "@/services/files.mutations"
+  createFile,
+  deleteFile as deleteFileSvc,
+  updateFile,
+} from "@/services/files"
 
-// Type for folders with nested children
-type FolderWithChildren = Folder & { children: FolderWithChildren[] }
+// UI types with optional timestamps to match relaxed client schemas
+type UIFolder = Omit<DbFolder, "created_at" | "updated_at"> & {
+  created_at?: Date
+  updated_at?: Date
+}
+type UIFile = Omit<DbFile, "created_at" | "updated_at"> & {
+  created_at?: Date
+  updated_at?: Date
+}
+type FolderWithChildren = UIFolder & { children: FolderWithChildren[] }
 
 export const Route = createFileRoute("/_authenticated/project/$projectId")({
   component: ProjectPage,
@@ -42,12 +50,6 @@ function ProjectPage() {
   const [newFileName, setNewFileName] = useState("")
   const [editingFileId, setEditingFileId] = useState<string | null>(null)
   const [fileContent, setFileContent] = useState("")
-  const [createFolder] = useCreateFolder()
-  const [updateFolder] = useUpdateFolder()
-  const [deleteFolderMutate] = useDeleteFolder()
-  const [createFile] = useCreateFile()
-  const [updateFile] = useUpdateFile()
-  const [deleteFileMutate] = useDeleteFile()
 
   const { data: folders } = useLiveQuery(
     (q) =>
@@ -106,10 +108,10 @@ function ProjectPage() {
   }
 
   const deleteFolder = (id: string) => {
-    void deleteFolderMutate(id)
+    void deleteFolderSvc(id)
   }
 
-  const renameFolder = (folder: Folder) => {
+  const renameFolder = (folder: UIFolder) => {
     const newName = prompt("Rename folder:", folder.name)
     if (newName && newName !== folder.name) {
       void updateFolder({ id: folder.id, name: newName })
@@ -130,17 +132,17 @@ function ProjectPage() {
   }
 
   const deleteFile = (id: string) => {
-    void deleteFileMutate(id)
+    void deleteFileSvc(id)
   }
 
-  const renameFile = (file: File) => {
+  const renameFile = (file: UIFile) => {
     const newName = prompt("Rename file:", file.name)
     if (newName && newName !== file.name) {
       void updateFile({ id: file.id, name: newName })
     }
   }
 
-  const editFile = (file: File) => {
+  const editFile = (file: UIFile) => {
     setEditingFileId(file.id)
     setFileContent((file.content as { text: string }).text || "")
   }
@@ -155,7 +157,7 @@ function ProjectPage() {
 
   // Build folder tree structure
   const buildFolderTree = (
-    folders: Folder[],
+    folders: UIFolder[],
     parentId: string | null = null
   ): FolderWithChildren[] => {
     return folders
@@ -427,7 +429,7 @@ function FolderTreeView({
   selectedFolderId: string | null
   onSelectFolder: (id: string | null) => void
   onDeleteFolder: (id: string) => void
-  onRenameFolder: (folder: Folder) => void
+  onRenameFolder: (folder: UIFolder) => void
 }) {
   return (
     <div className={`${level > 0 ? "ml-4" : ""}`}>

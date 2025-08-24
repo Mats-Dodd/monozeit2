@@ -10,7 +10,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
-import { useCreateProject } from "@/services/projects.mutations"
+import { createProject } from "@/services/projects"
 
 export const Route = createFileRoute("/_authenticated")({
   component: AuthenticatedLayout,
@@ -22,7 +22,6 @@ function AuthenticatedLayout() {
   const navigate = useNavigate()
   const [showNewProjectForm, setShowNewProjectForm] = useState(false)
   const [newProjectName, setNewProjectName] = useState("")
-  const [createProject] = useCreateProject()
 
   const { data: projects, isLoading } = useLiveQuery((q) =>
     q.from({ projectCollection })
