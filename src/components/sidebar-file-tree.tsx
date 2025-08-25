@@ -35,6 +35,18 @@ import {
   TreeLabel,
   useTree,
 } from "@/components/ui/kibo-ui/tree"
+import {
+  DndContext,
+  type DragEndEvent,
+  type DragStartEvent,
+  DragOverlay,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core"
+import { DraggableTreeItem } from "@/components/draggable-tree-item"
 
 type FolderNode = UIFolder & {
   childFolders: FolderNode[]
@@ -66,6 +78,13 @@ type DeletingState =
   | { type: "folder"; id: string; name: string }
   | { type: "file"; id: string; name: string }
   | null
+
+type DraggedData = {
+  type: "file" | "folder"
+  name: string
+  id: string
+  parentId?: string | null
+}
 
 export function SidebarFileTree({
   projectId,
@@ -103,6 +122,21 @@ export function SidebarFileTree({
   const [expandForDraft, setExpandForDraft] = useState<string | null>(null)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null)
+  const [draggedItem, setDraggedItem] = useState<{
+    type: "file" | "folder"
+    name: string
+    id: string
+  } | null>(null)
+
+  // Drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // Require 8px movement to start dragging
+      },
+    }),
+    useSensor(KeyboardSensor)
+  )
 
   const tree = useMemo(() => buildTree(folders, files), [folders, files])
 
@@ -185,144 +219,262 @@ export function SidebarFileTree({
     setDeleting({ type: "file", id: file.id, name: file.name })
   }, [])
 
+  // Helper to check if a folder is a descendant of another
+  const isDescendantOf = useCallback(
+    (childId: string, ancestorId: string): boolean => {
+      const visited = new Set<string>()
+
+      function checkParent(folderId: string): boolean {
+        if (visited.has(folderId)) return false // Prevent infinite loops
+        visited.add(folderId)
+
+        const folder = folders.find((f) => f.id === folderId)
+        if (!folder) return false
+        if (!folder.parent_id) return false
+        if (folder.parent_id === ancestorId) return true
+        return checkParent(folder.parent_id)
+      }
+
+      return checkParent(childId)
+    },
+    [folders]
+  )
+
+  // Drag handlers
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    const { active } = event
+    const data = active.data.current
+
+    if (data) {
+      setDraggedItem({
+        type: data.type,
+        name: data.name,
+        id: data.id,
+      })
+    }
+  }, [])
+
+  const handleDragEnd = useCallback(
+    async (event: DragEndEvent) => {
+      const { active, over } = event
+      setDraggedItem(null)
+
+      if (!over || !active.data.current) return
+
+      const draggedData = active.data.current as DraggedData
+      const overId = over.id as string
+      const overData = over.data.current
+
+      // Handle different drop scenarios
+      if (overData?.type === "insertion-point") {
+        // Dropped on insertion point (between items)
+        const targetId = overData.targetId
+        const targetData =
+          overData.targetType === "folder"
+            ? folders.find((f) => f.id === targetId)
+            : files.find((f) => f.id === targetId)
+
+        if (!targetData) return
+
+        // Move to the same parent as the target
+        const newParentId =
+          overData.targetType === "folder"
+            ? (targetData as UIFolder).parent_id
+            : (targetData as UIFile).folder_id
+
+        await moveItem(draggedData, newParentId)
+      } else if (overId.startsWith("droppable-")) {
+        // Dropped on a folder (droppable ID format: "droppable-{folderId}")
+        const actualFolderId = overId.replace("droppable-", "")
+
+        if (
+          draggedData.type === "folder" &&
+          isDescendantOf(actualFolderId, active.id as string)
+        ) {
+          // Prevent dropping a folder into its descendant
+          return
+        }
+
+        await moveItem(draggedData, actualFolderId)
+      }
+    },
+    [folders, files, isDescendantOf]
+  )
+
+  // Helper to move items
+  const moveItem = useCallback(
+    async (draggedData: DraggedData, newParentId: string | null) => {
+      if (draggedData.type === "file") {
+        await updateFile({
+          id: draggedData.id,
+          folderId: newParentId,
+        })
+      } else if (draggedData.type === "folder") {
+        await updateFolder({
+          id: draggedData.id,
+          parentId: newParentId,
+        })
+      }
+    },
+    []
+  )
+
   return (
-    <TreeProvider defaultExpandedIds={defaultExpanded} className="w-full">
-      <ExpansionPersistence projectId={projectId} />
-      <AutoExpandForDraft
-        expandForDraft={expandForDraft}
-        onCleared={() => setExpandForDraft(null)}
-      />
-      <ContextMenu onOpenChange={setIsMenuOpen}>
-        <ContextMenuTrigger asChild>
-          <div>
-            <TreeView className="px-1 py-1">
-              {isEmpty && !draft ? <EmptyState /> : null}
-              <RootList
-                folders={tree.rootFolders}
-                files={tree.rootFiles}
-                onCreateChild={handleCreateChild}
-                onRenameFolder={(f) => handleRename(f, "folder")}
-                onRenameFile={(f) => handleRename(f, "file")}
-                onDeleteFolder={requestDeleteFolder}
-                onDeleteFile={requestDeleteFile}
-                draft={draft}
-                onCancelDraft={() => {
-                  setPendingRootFileAfterFolder(false)
-                  setDraft(null)
-                }}
-                onCommitDraft={async (name) => {
-                  if (!draft) return
-                  const trimmed = name.trim()
-                  if (!trimmed) return
-                  if (draft.type === "folder") {
-                    const newFolderId = await createFolder({
-                      projectId,
-                      name: trimmed,
-                      parentId: draft.parentId ?? null,
-                    })
-                    if (pendingRootFileAfterFolder) {
-                      setPendingRootFileAfterFolder(false)
-                      setDraft({ type: "file", parentId: newFolderId })
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
+      <TreeProvider defaultExpandedIds={defaultExpanded} className="w-full">
+        <ExpansionPersistence projectId={projectId} />
+        <AutoExpandForDraft
+          expandForDraft={expandForDraft}
+          onCleared={() => setExpandForDraft(null)}
+        />
+        <ContextMenu onOpenChange={setIsMenuOpen}>
+          <ContextMenuTrigger asChild>
+            <div>
+              <TreeView className="px-1 py-1">
+                {isEmpty && !draft ? <EmptyState /> : null}
+                <RootList
+                  folders={tree.rootFolders}
+                  files={tree.rootFiles}
+                  onCreateChild={handleCreateChild}
+                  onRenameFolder={(f) => handleRename(f, "folder")}
+                  onRenameFile={(f) => handleRename(f, "file")}
+                  onDeleteFolder={requestDeleteFolder}
+                  onDeleteFile={requestDeleteFile}
+                  draft={draft}
+                  onCancelDraft={() => {
+                    setPendingRootFileAfterFolder(false)
+                    setDraft(null)
+                  }}
+                  onCommitDraft={async (name) => {
+                    if (!draft) return
+                    const trimmed = name.trim()
+                    if (!trimmed) return
+                    if (draft.type === "folder") {
+                      const newFolderId = await createFolder({
+                        projectId,
+                        name: trimmed,
+                        parentId: draft.parentId ?? null,
+                      })
+                      if (pendingRootFileAfterFolder) {
+                        setPendingRootFileAfterFolder(false)
+                        setDraft({ type: "file", parentId: newFolderId })
+                        return
+                      }
+                    } else {
+                      await createFile({
+                        projectId,
+                        folderId: draft.parentId ?? null,
+                        name: trimmed,
+                        content: { text: "" },
+                      })
+                    }
+                    setDraft(null)
+                  }}
+                  renaming={renaming}
+                  onCancelRenaming={() => setRenaming(null)}
+                  onCommitRenaming={async (name) => {
+                    if (!renaming) return
+                    const trimmed = name.trim()
+                    if (!trimmed || trimmed === renaming.name) {
+                      setRenaming(null)
                       return
                     }
-                  } else {
-                    await createFile({
-                      projectId,
-                      folderId: draft.parentId ?? null,
-                      name: trimmed,
-                      content: { text: "" },
-                    })
-                  }
-                  setDraft(null)
-                }}
-                renaming={renaming}
-                onCancelRenaming={() => setRenaming(null)}
-                onCommitRenaming={async (name) => {
-                  if (!renaming) return
-                  const trimmed = name.trim()
-                  if (!trimmed || trimmed === renaming.name) {
+                    if (renaming.type === "folder") {
+                      await updateFolder({ id: renaming.id, name: trimmed })
+                    } else {
+                      await updateFile({ id: renaming.id, name: trimmed })
+                    }
                     setRenaming(null)
-                    return
-                  }
-                  if (renaming.type === "folder") {
-                    await updateFolder({ id: renaming.id, name: trimmed })
-                  } else {
-                    await updateFile({ id: renaming.id, name: trimmed })
-                  }
-                  setRenaming(null)
-                }}
-              />
-            </TreeView>
-          </div>
-        </ContextMenuTrigger>
-        <ContextMenuContent onCloseAutoFocus={(e) => e.preventDefault()}>
-          {/* Root actions */}
-          <ContextMenuItem
-            onClick={() => {
-              const action = () => {
-                setDraft({ type: "folder", parentId: null })
-              }
-              setPendingAction(() => action)
-            }}
-          >
-            Create folder
-          </ContextMenuItem>
-          <ContextMenuItem
-            onClick={() => {
-              const action = () => {
-                setDraft({ type: "file", parentId: null })
-              }
-              setPendingAction(() => action)
-            }}
-          >
-            Create file
-          </ContextMenuItem>
-        </ContextMenuContent>
-      </ContextMenu>
-
-      {/* Delete confirmation dialog */}
-      <AlertDialog
-        open={!!deleting}
-        onOpenChange={(open) => !open && setDeleting(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {deleting?.type === "folder" ? "Delete folder" : "Delete file"}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {deleting?.type === "folder"
-                ? `Are you sure you want to delete "${deleting.name}"? This will permanently delete the folder and all its contents, including any nested folders and files.`
-                : `Are you sure you want to delete "${deleting?.name}"? This action cannot be undone.`}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              disabled={isDeleting}
-              onClick={async () => {
-                if (!deleting) return
-                setIsDeleting(true)
-                try {
-                  if (deleting.type === "folder") {
-                    await deleteFolder(deleting.id)
-                  } else {
-                    await deleteFile(deleting.id)
-                  }
-                  setDeleting(null)
-                } catch (error) {
-                  console.error("Failed to delete:", error)
-                } finally {
-                  setIsDeleting(false)
+                  }}
+                />
+              </TreeView>
+            </div>
+          </ContextMenuTrigger>
+          <ContextMenuContent onCloseAutoFocus={(e) => e.preventDefault()}>
+            {/* Root actions */}
+            <ContextMenuItem
+              onClick={() => {
+                const action = () => {
+                  setDraft({ type: "folder", parentId: null })
                 }
+                setPendingAction(() => action)
               }}
             >
-              {isDeleting ? "Deleting..." : "Delete"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </TreeProvider>
+              Create folder
+            </ContextMenuItem>
+            <ContextMenuItem
+              onClick={() => {
+                const action = () => {
+                  setDraft({ type: "file", parentId: null })
+                }
+                setPendingAction(() => action)
+              }}
+            >
+              Create file
+            </ContextMenuItem>
+          </ContextMenuContent>
+        </ContextMenu>
+
+        {/* Delete confirmation dialog */}
+        <AlertDialog
+          open={!!deleting}
+          onOpenChange={(open) => !open && setDeleting(null)}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                {deleting?.type === "folder" ? "Delete folder" : "Delete file"}
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                {deleting?.type === "folder"
+                  ? `Are you sure you want to delete "${deleting.name}"? This will permanently delete the folder and all its contents, including any nested folders and files.`
+                  : `Are you sure you want to delete "${deleting?.name}"? This action cannot be undone.`}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeleting}>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                disabled={isDeleting}
+                onClick={async () => {
+                  if (!deleting) return
+                  setIsDeleting(true)
+                  try {
+                    if (deleting.type === "folder") {
+                      await deleteFolder(deleting.id)
+                    } else {
+                      await deleteFile(deleting.id)
+                    }
+                    setDeleting(null)
+                  } catch (error) {
+                    console.error("Failed to delete:", error)
+                  } finally {
+                    setIsDeleting(false)
+                  }
+                }}
+              >
+                {isDeleting ? "Deleting..." : "Delete"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </TreeProvider>
+
+      {/* Drag overlay */}
+      <DragOverlay>
+        {draggedItem ? (
+          <div className="bg-background border rounded px-2 py-1 text-sm shadow-lg">
+            {draggedItem.name}
+          </div>
+        ) : null}
+      </DragOverlay>
+    </DndContext>
   )
 }
 
@@ -494,36 +646,48 @@ function RootList(props: {
 
       {/* Root files */}
       {files.map((file) => (
-        <TreeNode key={file.id} nodeId={file.id}>
-          <ContextMenu>
-            <ContextMenuTrigger asChild>
-              <div>
-                <TreeNodeTrigger>
-                  <TreeExpander hasChildren={false} />
-                  <TreeIcon hasChildren={false} />
-                  {renaming?.type === "file" && renaming.id === file.id ? (
-                    <InlineNameEditor
-                      defaultValue={renaming.name}
-                      onCancel={onCancelRenaming}
-                      onCommit={onCommitRenaming}
-                    />
-                  ) : (
-                    <TreeLabel>{file.name}</TreeLabel>
-                  )}
-                </TreeNodeTrigger>
-              </div>
-            </ContextMenuTrigger>
-            <ContextMenuContent onCloseAutoFocus={(e) => e.preventDefault()}>
-              <ContextMenuItem onClick={() => onRenameFile(file)}>
-                Rename
-              </ContextMenuItem>
-              <ContextMenuSeparator />
-              <ContextMenuItem onClick={() => onDeleteFile(file)}>
-                Delete
-              </ContextMenuItem>
-            </ContextMenuContent>
-          </ContextMenu>
-        </TreeNode>
+        <DraggableTreeItem
+          key={file.id}
+          id={file.id}
+          data={{
+            type: "file",
+            name: file.name,
+            id: file.id,
+            parentId: file.folder_id,
+          }}
+          canDrop={false}
+        >
+          <TreeNode nodeId={file.id}>
+            <ContextMenu>
+              <ContextMenuTrigger asChild>
+                <div>
+                  <TreeNodeTrigger>
+                    <TreeExpander hasChildren={false} />
+                    <TreeIcon hasChildren={false} />
+                    {renaming?.type === "file" && renaming.id === file.id ? (
+                      <InlineNameEditor
+                        defaultValue={renaming.name}
+                        onCancel={onCancelRenaming}
+                        onCommit={onCommitRenaming}
+                      />
+                    ) : (
+                      <TreeLabel>{file.name}</TreeLabel>
+                    )}
+                  </TreeNodeTrigger>
+                </div>
+              </ContextMenuTrigger>
+              <ContextMenuContent onCloseAutoFocus={(e) => e.preventDefault()}>
+                <ContextMenuItem onClick={() => onRenameFile(file)}>
+                  Rename
+                </ContextMenuItem>
+                <ContextMenuSeparator />
+                <ContextMenuItem onClick={() => onDeleteFile(file)}>
+                  Delete
+                </ContextMenuItem>
+              </ContextMenuContent>
+            </ContextMenu>
+          </TreeNode>
+        </DraggableTreeItem>
       ))}
 
       {/* Root-level draft */}
@@ -577,127 +741,151 @@ function FolderItem(props: {
   const isRenaming = renaming?.type === "folder" && renaming.id === folder.id
 
   return (
-    <TreeNode nodeId={folder.id}>
-      <ContextMenu>
-        <ContextMenuTrigger asChild>
-          <div>
-            <TreeNodeTrigger>
-              <TreeExpander
-                hasChildren={
-                  folder.childFolders.length + folder.files.length > 0 ||
-                  (draft && draft.parentId === folder.id)
-                    ? true
-                    : false
-                }
-              />
-              <TreeIcon hasChildren />
-              {isRenaming ? (
-                <InlineNameEditor
-                  defaultValue={renaming!.name}
-                  onCancel={onCancelRenaming}
-                  onCommit={onCommitRenaming}
-                />
-              ) : (
-                <TreeLabel>{folder.name}</TreeLabel>
-              )}
-            </TreeNodeTrigger>
-          </div>
-        </ContextMenuTrigger>
-        <ContextMenuContent onCloseAutoFocus={(e) => e.preventDefault()}>
-          <ContextMenuItem onClick={() => onRenameFolder(folder)}>
-            Rename
-          </ContextMenuItem>
-          <ContextMenuSeparator />
-          <ContextMenuItem onClick={() => onCreateChild(folder.id, "folder")}>
-            Create folder
-          </ContextMenuItem>
-          <ContextMenuItem onClick={() => onCreateChild(folder.id, "file")}>
-            Create file
-          </ContextMenuItem>
-          <ContextMenuSeparator />
-          <ContextMenuItem onClick={() => onDeleteFolder(folder)}>
-            Delete
-          </ContextMenuItem>
-        </ContextMenuContent>
-      </ContextMenu>
-
-      <TreeNodeContent hasChildren>
-        <div className="space-y-1">
-          {/* Draft child under this folder */}
-          {draft && draft.parentId === folder.id && (
-            <TreeNode nodeId={`__draft_${folder.id}__`}>
+    <DraggableTreeItem
+      id={folder.id}
+      data={{
+        type: "folder",
+        name: folder.name,
+        id: folder.id,
+        parentId: folder.parent_id,
+      }}
+      canDrop={true}
+    >
+      <TreeNode nodeId={folder.id}>
+        <ContextMenu>
+          <ContextMenuTrigger asChild>
+            <div>
               <TreeNodeTrigger>
-                <TreeExpander hasChildren={false} />
-                <TreeIcon hasChildren={draft.type === "folder"} />
-                <InlineNameEditor
-                  placeholder={
-                    draft.type === "folder" ? "New folder" : "New file"
+                <TreeExpander
+                  hasChildren={
+                    folder.childFolders.length + folder.files.length > 0 ||
+                    (draft && draft.parentId === folder.id)
+                      ? true
+                      : false
                   }
-                  onCancel={onCancelDraft}
-                  onCommit={onCommitDraft}
                 />
+                <TreeIcon hasChildren />
+                {isRenaming ? (
+                  <InlineNameEditor
+                    defaultValue={renaming!.name}
+                    onCancel={onCancelRenaming}
+                    onCommit={onCommitRenaming}
+                  />
+                ) : (
+                  <TreeLabel>{folder.name}</TreeLabel>
+                )}
               </TreeNodeTrigger>
-            </TreeNode>
-          )}
+            </div>
+          </ContextMenuTrigger>
+          <ContextMenuContent onCloseAutoFocus={(e) => e.preventDefault()}>
+            <ContextMenuItem onClick={() => onRenameFolder(folder)}>
+              Rename
+            </ContextMenuItem>
+            <ContextMenuSeparator />
+            <ContextMenuItem onClick={() => onCreateChild(folder.id, "folder")}>
+              Create folder
+            </ContextMenuItem>
+            <ContextMenuItem onClick={() => onCreateChild(folder.id, "file")}>
+              Create file
+            </ContextMenuItem>
+            <ContextMenuSeparator />
+            <ContextMenuItem onClick={() => onDeleteFolder(folder)}>
+              Delete
+            </ContextMenuItem>
+          </ContextMenuContent>
+        </ContextMenu>
 
-          {/* Child folders */}
-          {folder.childFolders.map((child, idx) => (
-            <FolderItem
-              key={child.id}
-              folder={child}
-              isLast={idx === folder.childFolders.length - 1}
-              onCreateChild={onCreateChild}
-              onRenameFolder={onRenameFolder}
-              onRenameFile={onRenameFile}
-              onDeleteFolder={onDeleteFolder}
-              onDeleteFile={onDeleteFile}
-              draft={draft}
-              onCancelDraft={onCancelDraft}
-              onCommitDraft={onCommitDraft}
-              renaming={renaming}
-              onCancelRenaming={onCancelRenaming}
-              onCommitRenaming={onCommitRenaming}
-            />
-          ))}
+        <TreeNodeContent hasChildren>
+          <div className="space-y-1">
+            {/* Draft child under this folder */}
+            {draft && draft.parentId === folder.id && (
+              <TreeNode nodeId={`__draft_${folder.id}__`}>
+                <TreeNodeTrigger>
+                  <TreeExpander hasChildren={false} />
+                  <TreeIcon hasChildren={draft.type === "folder"} />
+                  <InlineNameEditor
+                    placeholder={
+                      draft.type === "folder" ? "New folder" : "New file"
+                    }
+                    onCancel={onCancelDraft}
+                    onCommit={onCommitDraft}
+                  />
+                </TreeNodeTrigger>
+              </TreeNode>
+            )}
 
-          {/* Files */}
-          {folder.files.map((file) => (
-            <TreeNode key={file.id} nodeId={file.id}>
-              <ContextMenu>
-                <ContextMenuTrigger asChild>
-                  <div>
-                    <TreeNodeTrigger>
-                      <TreeExpander hasChildren={false} />
-                      <TreeIcon hasChildren={false} />
-                      {renaming?.type === "file" && renaming.id === file.id ? (
-                        <InlineNameEditor
-                          defaultValue={renaming.name}
-                          onCancel={onCancelRenaming}
-                          onCommit={onCommitRenaming}
-                        />
-                      ) : (
-                        <TreeLabel>{file.name}</TreeLabel>
-                      )}
-                    </TreeNodeTrigger>
-                  </div>
-                </ContextMenuTrigger>
-                <ContextMenuContent
-                  onCloseAutoFocus={(e) => e.preventDefault()}
-                >
-                  <ContextMenuItem onClick={() => onRenameFile(file)}>
-                    Rename
-                  </ContextMenuItem>
-                  <ContextMenuSeparator />
-                  <ContextMenuItem onClick={() => onDeleteFile(file)}>
-                    Delete
-                  </ContextMenuItem>
-                </ContextMenuContent>
-              </ContextMenu>
-            </TreeNode>
-          ))}
-        </div>
-      </TreeNodeContent>
-    </TreeNode>
+            {/* Child folders */}
+            {folder.childFolders.map((child, idx) => (
+              <FolderItem
+                key={child.id}
+                folder={child}
+                isLast={idx === folder.childFolders.length - 1}
+                onCreateChild={onCreateChild}
+                onRenameFolder={onRenameFolder}
+                onRenameFile={onRenameFile}
+                onDeleteFolder={onDeleteFolder}
+                onDeleteFile={onDeleteFile}
+                draft={draft}
+                onCancelDraft={onCancelDraft}
+                onCommitDraft={onCommitDraft}
+                renaming={renaming}
+                onCancelRenaming={onCancelRenaming}
+                onCommitRenaming={onCommitRenaming}
+              />
+            ))}
+
+            {/* Files */}
+            {folder.files.map((file) => (
+              <DraggableTreeItem
+                key={file.id}
+                id={file.id}
+                data={{
+                  type: "file",
+                  name: file.name,
+                  id: file.id,
+                  parentId: file.folder_id,
+                }}
+                canDrop={false}
+              >
+                <TreeNode nodeId={file.id}>
+                  <ContextMenu>
+                    <ContextMenuTrigger asChild>
+                      <div>
+                        <TreeNodeTrigger>
+                          <TreeExpander hasChildren={false} />
+                          <TreeIcon hasChildren={false} />
+                          {renaming?.type === "file" &&
+                          renaming.id === file.id ? (
+                            <InlineNameEditor
+                              defaultValue={renaming.name}
+                              onCancel={onCancelRenaming}
+                              onCommit={onCommitRenaming}
+                            />
+                          ) : (
+                            <TreeLabel>{file.name}</TreeLabel>
+                          )}
+                        </TreeNodeTrigger>
+                      </div>
+                    </ContextMenuTrigger>
+                    <ContextMenuContent
+                      onCloseAutoFocus={(e) => e.preventDefault()}
+                    >
+                      <ContextMenuItem onClick={() => onRenameFile(file)}>
+                        Rename
+                      </ContextMenuItem>
+                      <ContextMenuSeparator />
+                      <ContextMenuItem onClick={() => onDeleteFile(file)}>
+                        Delete
+                      </ContextMenuItem>
+                    </ContextMenuContent>
+                  </ContextMenu>
+                </TreeNode>
+              </DraggableTreeItem>
+            ))}
+          </div>
+        </TreeNodeContent>
+      </TreeNode>
+    </DraggableTreeItem>
   )
 }
 
