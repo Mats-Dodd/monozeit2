@@ -400,7 +400,7 @@ export function SidebarFileTree({
         <ContextMenu onOpenChange={setIsMenuOpen}>
           <ContextMenuTrigger asChild>
             <div>
-              <TreeView className="px-1 py-1">
+              <TreeView className="px-1 py-1 min-h-[200px]">
                 {isEmpty && !draft ? <EmptyState /> : null}
                 <RootList
                   folders={tree.rootFolders}
@@ -769,6 +769,9 @@ function RootList(props: {
           </TreeNodeTrigger>
         </TreeNode>
       )}
+
+      {/* Empty space for right-click */}
+      <div className="flex-1 min-h-[100px]" />
     </div>
   )
 }
