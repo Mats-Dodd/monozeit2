@@ -157,7 +157,10 @@ export function SidebarFileTree({
   return (
     <TreeProvider defaultExpandedIds={defaultExpanded} className="w-full">
       <ExpansionPersistence projectId={projectId} />
-      <AutoExpandForDraft expandForDraft={expandForDraft} />
+      <AutoExpandForDraft
+        expandForDraft={expandForDraft}
+        onCleared={() => setExpandForDraft(null)}
+      />
       <ContextMenu onOpenChange={setIsMenuOpen}>
         <ContextMenuTrigger asChild>
           <div>
@@ -276,8 +279,10 @@ function useTreeBridge() {
 
 function AutoExpandForDraft({
   expandForDraft,
+  onCleared,
 }: {
   expandForDraft: string | null
+  onCleared: () => void
 }) {
   const { expandedIds, toggleExpanded } = useTree()
 
@@ -293,9 +298,11 @@ function AutoExpandForDraft({
             block: "nearest",
           })
         }
+        // Clear the expand flag after scrolling so user can collapse normally
+        onCleared()
       }, 150)
     }
-  }, [expandForDraft, expandedIds, toggleExpanded])
+  }, [expandForDraft, expandedIds, toggleExpanded, onCleared])
 
   return null
 }
