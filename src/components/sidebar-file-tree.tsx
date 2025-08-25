@@ -615,6 +615,10 @@ function SafeFocusInput({
   )
 }
 
+// Borderless inline editor styles
+const inlineEditorInputClass =
+  "h-7 text-xs border-0 bg-transparent shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-transparent px-0 placeholder:text-muted-foreground"
+
 function InlineNameEditor({
   defaultValue = "",
   placeholder,
@@ -669,7 +673,7 @@ function InlineNameEditor({
           }
         }}
         onBlur={handleBlur}
-        className="h-7 py-1 px-2 text-xs"
+        className={inlineEditorInputClass}
       />
     </div>
   )
