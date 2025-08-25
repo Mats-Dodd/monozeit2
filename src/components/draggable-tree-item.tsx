@@ -51,6 +51,16 @@ export function DraggableTreeItem({
     disabled: !canDrop,
   })
 
+  // Only log when actually relevant to avoid clutter
+  if (isOver && active) {
+    console.log(`🎯 DROPPABLE ACTIVE ${id}:`, {
+      type: data.type,
+      canDrop,
+      isOver,
+      isFolder: data.type === "folder",
+    })
+  }
+
   // Only folders can accept drops of other items
   const isFolder = data.type === "folder"
   const isDragTarget = isOver && active && isFolder

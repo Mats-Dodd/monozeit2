@@ -1,0 +1,24 @@
+🚀 DRAG START: {activeId: 'eae90126-ea06-4c82-9faf-4e82d2c4e344', draggedData: {…}, type: 'file', name: 'file1', id: 'eae90126-ea06-4c82-9faf-4e82d2c4e344', …}
+draggable-tree-item.tsx:56 🎯 DROPPABLE ACTIVE 1df8d8ab-56cd-4098-854d-d2555a7dcec8: {type: 'folder', canDrop: true, isOver: true, isFolder: true}
+draggable-tree-item.tsx:56 🎯 DROPPABLE ACTIVE 1df8d8ab-56cd-4098-854d-d2555a7dcec8: {type: 'folder', canDrop: true, isOver: true, isFolder: true}
+draggable-tree-item.tsx:56 🎯 DROPPABLE ACTIVE 685bf713-0f63-4fbf-9705-61713043ed32: {type: 'folder', canDrop: true, isOver: true, isFolder: true}
+draggable-tree-item.tsx:56 🎯 DROPPABLE ACTIVE 685bf713-0f63-4fbf-9705-61713043ed32: {type: 'folder', canDrop: true, isOver: true, isFolder: true}
+sidebar-file-tree.tsx:287 🎯 DRAG END: {activeId: 'eae90126-ea06-4c82-9faf-4e82d2c4e344', overId: 'droppable-685bf713-0f63-4fbf-9705-61713043ed32', overData: {…}, hasOver: true, hasActiveData: true}
+sidebar-file-tree.tsx:304 📦 DRAG DATA: {draggedData: {…}, overId: 'droppable-685bf713-0f63-4fbf-9705-61713043ed32', overData: {…}}
+sidebar-file-tree.tsx:330 📁 FOLDER DROP
+sidebar-file-tree.tsx:334 🔍 FOLDER DROP DETAILS: {actualFolderId: '685bf713-0f63-4fbf-9705-61713043ed32', draggedType: 'file', draggedId: 'eae90126-ea06-4c82-9faf-4e82d2c4e344'}
+sidebar-file-tree.tsx:349 ✅ PROCEEDING WITH FOLDER DROP
+sidebar-file-tree.tsx:361 📦 MOVE ITEM: {type: 'file', id: 'eae90126-ea06-4c82-9faf-4e82d2c4e344', name: 'file1', newParentId: '685bf713-0f63-4fbf-9705-61713043ed32'}
+sidebar-file-tree.tsx:369 📄 Updating file...
+files.ts:37 📄 UPDATE FILE CALLED: {id: 'eae90126-ea06-4c82-9faf-4e82d2c4e344', updateArgs: {…}, restArgs: {…}}
+mappers.ts:67 🗃️ toDbFileUpdate: {input: {…}, output: {…}}
+files.ts:44 📄 DB PATCH: {name: undefined, folder_id: '685bf713-0f63-4fbf-9705-61713043ed32', content: undefined}
+files.ts:51 📄 DRAFT BEFORE assignDefined: {name: 'file1', folder_id: '685bf713-0f63-4fbf-9705-61713043ed32', patch: {…}}
+util.ts:5 🔄 assignDefined: {target: Proxy(Object), patch: {…}}
+util.ts:8   name: undefined (undefined) - SKIPPING
+util.ts:8   folder_id: 685bf713-0f63-4fbf-9705-61713043ed32 (string) - ASSIGNING
+util.ts:8   content: undefined (undefined) - SKIPPING
+util.ts:15 🔄 assignDefined result: Proxy(Object) {content: {…}, created_at: Sun Aug 24 2025 21:41:10 GMT-0700 (Pacific Daylight Time), folder_id: '685bf713-0f63-4fbf-9705-61713043ed32', id: 'eae90126-ea06-4c82-9faf-4e82d2c4e344', name: 'file1', …}
+files.ts:57 📄 DRAFT AFTER assignDefined: {name: 'file1', folder_id: '685bf713-0f63-4fbf-9705-61713043ed32'}
+files.ts:63 📄 UPDATE FILE COMPLETED
+sidebar-file-tree.tsx:374 ✅ File updated

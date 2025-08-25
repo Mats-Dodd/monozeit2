@@ -59,9 +59,11 @@ export function toDbFileCreate(ui: Omit<FileCreateUI, "id"> & { id: string }) {
 }
 
 export function toDbFileUpdate(ui: FileUpdateUIPatch) {
-  return {
+  const result = {
     name: ui.name,
     folder_id: ui.folderId,
     content: ui.content as JsonValue | undefined,
   }
+  console.log("🗃️ toDbFileUpdate:", { input: ui, output: result })
+  return result
 }
