@@ -34,33 +34,15 @@ export async function updateFile(args: {
 }): Promise<void> {
   const { id, ...rest } = args
 
-  console.log("📄 UPDATE FILE CALLED:", {
-    id,
-    updateArgs: args,
-    restArgs: rest,
-  })
-
   const dbPatch = toDbFileUpdate(rest)
-  console.log("📄 DB PATCH:", dbPatch)
 
   updateFileSchema
     .pick({ name: true, folder_id: true, content: true })
     .parse(dbPatch)
 
   fileCollection.update(id, (draft) => {
-    console.log("📄 DRAFT BEFORE assignDefined:", {
-      name: draft.name,
-      folder_id: draft.folder_id,
-      patch: dbPatch,
-    })
     assignDefined(draft, dbPatch)
-    console.log("📄 DRAFT AFTER assignDefined:", {
-      name: draft.name,
-      folder_id: draft.folder_id,
-    })
   })
-
-  console.log("📄 UPDATE FILE COMPLETED")
 }
 
 export async function deleteFile(id: string): Promise<void> {

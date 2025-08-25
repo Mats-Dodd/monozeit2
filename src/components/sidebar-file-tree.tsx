@@ -222,36 +222,30 @@ export function SidebarFileTree({
   // Helper to check if a folder is a descendant of another
   const isDescendantOf = useCallback(
     (childId: string, ancestorId: string): boolean => {
-      console.log("🔍 isDescendantOf CHECK:", { childId, ancestorId })
       const visited = new Set<string>()
 
       function checkParent(folderId: string): boolean {
-        console.log("  📂 Checking folder:", folderId)
         if (visited.has(folderId)) {
-          console.log("  ❌ Already visited (loop detected)")
           return false // Prevent infinite loops
         }
         visited.add(folderId)
 
         const folder = folders.find((f) => f.id === folderId)
         if (!folder) {
-          console.log("  ❌ Folder not found")
           return false
         }
         if (!folder.parent_id) {
-          console.log("  📍 Reached root folder")
           return false
         }
         if (folder.parent_id === ancestorId) {
-          console.log("  ✅ Found ancestor!")
           return true
         }
-        console.log(`  ⬆️  Going up to parent: ${folder.parent_id}`)
+
         return checkParent(folder.parent_id)
       }
 
       const result = checkParent(childId)
-      console.log("🔍 isDescendantOf RESULT:", result)
+
       return result
     },
     [folders]
@@ -263,14 +257,6 @@ export function SidebarFileTree({
     const data = active.data.current
 
     if (data) {
-      console.log("🚀 DRAG START:", {
-        activeId: active.id,
-        draggedData: data,
-        type: data.type,
-        name: data.name,
-        id: data.id,
-        parentId: data.parentId,
-      })
       setDraggedItem({
         type: data.type,
         name: data.name,
@@ -284,16 +270,7 @@ export function SidebarFileTree({
       const { active, over } = event
       setDraggedItem(null)
 
-      console.log("🎯 DRAG END:", {
-        activeId: active.id,
-        overId: over?.id,
-        overData: over?.data.current,
-        hasOver: !!over,
-        hasActiveData: !!active.data.current,
-      })
-
       if (!over || !active.data.current) {
-        console.log("❌ DRAG END EARLY RETURN: No over or no active data")
         return
       }
 
@@ -301,15 +278,8 @@ export function SidebarFileTree({
       const overId = over.id as string
       const overData = over.data.current
 
-      console.log("📦 DRAG DATA:", {
-        draggedData,
-        overId,
-        overData,
-      })
-
       // Handle different drop scenarios
       if (overData?.type === "insertion-point") {
-        console.log("📍 INSERTION POINT DROP")
         // Dropped on insertion point (between items)
         const targetId = overData.targetId
         const targetData =
@@ -327,29 +297,18 @@ export function SidebarFileTree({
 
         await moveItem(draggedData, newParentId)
       } else if (overId.startsWith("droppable-")) {
-        console.log("📁 FOLDER DROP")
         // Dropped on a folder (droppable ID format: "droppable-{folderId}")
         const actualFolderId = overId.replace("droppable-", "")
-
-        console.log("🔍 FOLDER DROP DETAILS:", {
-          actualFolderId,
-          draggedType: draggedData.type,
-          draggedId: draggedData.id,
-        })
 
         if (
           draggedData.type === "folder" &&
           isDescendantOf(actualFolderId, draggedData.id)
         ) {
-          console.log("🚫 PREVENTED: Folder descendant drop")
           // Prevent dropping a folder into its descendant
           return
         }
 
-        console.log("✅ PROCEEDING WITH FOLDER DROP")
         await moveItem(draggedData, actualFolderId)
-      } else {
-        console.log("❓ UNKNOWN DROP TYPE:", { overId, overData })
       }
     },
     [folders, files, isDescendantOf]
@@ -358,27 +317,16 @@ export function SidebarFileTree({
   // Helper to move items
   const moveItem = useCallback(
     async (draggedData: DraggedData, newParentId: string | null) => {
-      console.log("📦 MOVE ITEM:", {
-        type: draggedData.type,
-        id: draggedData.id,
-        name: draggedData.name,
-        newParentId,
-      })
-
       if (draggedData.type === "file") {
-        console.log("📄 Updating file...")
         await updateFile({
           id: draggedData.id,
           folderId: newParentId,
         })
-        console.log("✅ File updated")
       } else if (draggedData.type === "folder") {
-        console.log("📁 Updating folder...")
         await updateFolder({
           id: draggedData.id,
           parentId: newParentId,
         })
-        console.log("✅ Folder updated")
       }
     },
     []

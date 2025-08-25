@@ -64,6 +64,5 @@ export function toDbFileUpdate(ui: FileUpdateUIPatch) {
     folder_id: ui.folderId,
     content: ui.content as JsonValue | undefined,
   }
-  console.log("🗃️ toDbFileUpdate:", { input: ui, output: result })
   return result
 }
