@@ -642,7 +642,9 @@ function RootList(props: {
         <FolderItem
           key={folder.id}
           folder={folder}
+          level={0}
           isLast={idx === folders.length - 1}
+          parentPath={[]}
           onCreateChild={onCreateChild}
           onRenameFolder={onRenameFolder}
           onRenameFile={onRenameFile}
@@ -670,7 +672,7 @@ function RootList(props: {
           }}
           canDrop={false}
         >
-          <TreeNode nodeId={file.id}>
+          <TreeNode nodeId={file.id} level={0} parentPath={[]}>
             <ContextMenu>
               <ContextMenuTrigger asChild>
                 <div>
@@ -705,7 +707,7 @@ function RootList(props: {
 
       {/* Root-level draft */}
       {draft && draft.parentId === null && (
-        <TreeNode nodeId="__draft_root__">
+        <TreeNode nodeId="__draft_root__" level={0} parentPath={[]}>
           <TreeNodeTrigger>
             <TreeExpander hasChildren={false} />
             <TreeIcon hasChildren={draft.type === "folder"} />
@@ -726,7 +728,9 @@ function RootList(props: {
 
 function FolderItem(props: {
   folder: FolderNode
+  level: number
   isLast: boolean
+  parentPath: boolean[]
   onCreateChild: (folderId: string, type: "folder" | "file") => void
   onRenameFolder: (f: UIFolder) => void
   onRenameFile: (f: UIFile) => void
@@ -741,6 +745,8 @@ function FolderItem(props: {
 }) {
   const {
     folder,
+    level,
+    parentPath,
     onCreateChild,
     onRenameFolder,
     onRenameFile,
@@ -767,7 +773,12 @@ function FolderItem(props: {
       }}
       canDrop={true}
     >
-      <TreeNode nodeId={folder.id}>
+      <TreeNode
+        nodeId={folder.id}
+        level={level}
+        isLast={props.isLast}
+        parentPath={parentPath}
+      >
         <ContextMenu>
           <ContextMenuTrigger asChild>
             <div>
@@ -815,7 +826,11 @@ function FolderItem(props: {
           <div className="space-y-1">
             {/* Draft child under this folder */}
             {draft && draft.parentId === folder.id && (
-              <TreeNode nodeId={`__draft_${folder.id}__`}>
+              <TreeNode
+                nodeId={`__draft_${folder.id}__`}
+                level={level + 1}
+                parentPath={[...parentPath, props.isLast]}
+              >
                 <TreeNodeTrigger>
                   <TreeExpander hasChildren={false} />
                   <TreeIcon hasChildren={draft.type === "folder"} />
@@ -835,7 +850,9 @@ function FolderItem(props: {
               <FolderItem
                 key={child.id}
                 folder={child}
+                level={level + 1}
                 isLast={idx === folder.childFolders.length - 1}
+                parentPath={[...parentPath, props.isLast]}
                 onCreateChild={onCreateChild}
                 onRenameFolder={onRenameFolder}
                 onRenameFile={onRenameFile}
@@ -863,7 +880,11 @@ function FolderItem(props: {
                 }}
                 canDrop={false}
               >
-                <TreeNode nodeId={file.id}>
+                <TreeNode
+                  nodeId={file.id}
+                  level={level + 1}
+                  parentPath={[...parentPath, props.isLast]}
+                >
                   <ContextMenu>
                     <ContextMenuTrigger asChild>
                       <div>
