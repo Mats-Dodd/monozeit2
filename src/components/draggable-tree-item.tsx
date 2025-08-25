@@ -81,10 +81,14 @@ export function DraggableTreeItem({
       style={style}
       className={cn(
         className,
-        isBeingDragged && "opacity-50",
-        isDragTarget && !isInvalidDrop && "bg-accent/50",
-        isInvalidDrop && "bg-destructive/20"
+        isBeingDragged && "opacity-70",
+        isDragTarget &&
+          !isInvalidDrop &&
+          "ring-1 ring-inset ring-primary/30 rounded-sm",
+        isInvalidDrop &&
+          "ring-1 ring-inset ring-destructive/30 rounded-sm cursor-not-allowed"
       )}
+      aria-invalid={isInvalidDrop || undefined}
       {...attributes}
       {...listeners}
     >
@@ -133,11 +137,11 @@ export function DroppableArea({
   return (
     <div ref={setNodeRef} className={cn(className)}>
       {showDropIndicator && position === "before" && (
-        <div className="h-0.5 bg-primary mx-2 mb-1" />
+        <div className="h-px bg-primary/50 mx-2 mb-1" />
       )}
       {children}
       {showDropIndicator && position === "after" && (
-        <div className="h-0.5 bg-primary mx-2 mt-1" />
+        <div className="h-px bg-primary/50 mx-2 mt-1" />
       )}
     </div>
   )
@@ -164,7 +168,10 @@ export function RootDropZone({
   return (
     <div
       ref={setNodeRef}
-      className={cn(className, showActive && "bg-accent/50")}
+      className={cn(
+        className,
+        showActive && "ring-1 ring-primary/20 rounded-sm"
+      )}
     >
       {children}
     </div>

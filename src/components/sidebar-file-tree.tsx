@@ -511,9 +511,9 @@ export function SidebarFileTree({
       <RootDropZone className="h-20" />
 
       {/* Drag overlay */}
-      <DragOverlay>
+      <DragOverlay dropAnimation={{ duration: 150, easing: "ease-out" }}>
         {draggedItem ? (
-          <div className="bg-background border rounded px-2 py-1 text-sm shadow-lg">
+          <div className="bg-muted/90 rounded px-2 py-1 text-sm shadow-md backdrop-blur-sm select-none">
             {draggedItem.name}
           </div>
         ) : null}
