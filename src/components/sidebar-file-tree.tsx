@@ -6,7 +6,6 @@ import type { UIFile, UIFolder } from "@/services/types"
 import { folderCollection, fileCollection } from "@/lib/collections"
 import { createFolder, updateFolder } from "@/services/folders"
 import { createFile, updateFile } from "@/services/files"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
   ContextMenu,
@@ -77,6 +76,8 @@ export function SidebarFileTree({
 
   const [draft, setDraft] = useState<DraftState>(null)
   const [renaming, setRenaming] = useState<RenamingState>(null)
+  const [pendingRootFileAfterFolder, setPendingRootFileAfterFolder] =
+    useState(false)
 
   const tree = useMemo(() => buildTree(folders, files), [folders, files])
 
@@ -109,77 +110,89 @@ export function SidebarFileTree({
         <ContextMenuTrigger asChild>
           <div>
             <TreeView className="px-1 py-1">
-              {isEmpty ? (
-                <EmptyState
-                  onCreateFolder={() =>
-                    setDraft({ type: "folder", parentId: null })
-                  }
-                />
-              ) : (
-                <RootList
-                  nodes={tree}
-                  onCreateChild={(folderId, type) =>
-                    setDraft(
-                      type === "folder"
-                        ? { type: "folder", parentId: folderId }
-                        : { type: "file", parentId: folderId }
-                    )
-                  }
-                  onRenameFolder={(f) =>
-                    setRenaming({ type: "folder", id: f.id, name: f.name })
-                  }
-                  onRenameFile={(f) =>
-                    setRenaming({ type: "file", id: f.id, name: f.name })
-                  }
-                  draft={draft}
-                  onCancelDraft={() => setDraft(null)}
-                  onCommitDraft={async (name) => {
-                    if (!draft) return
-                    const trimmed = name.trim()
-                    if (!trimmed) return
-                    if (draft.type === "folder") {
-                      await createFolder({
-                        projectId,
-                        name: trimmed,
-                        parentId: draft.parentId ?? null,
-                      })
-                    } else {
-                      await createFile({
-                        projectId,
-                        folderId: draft.parentId,
-                        name: trimmed,
-                        content: { text: "" },
-                      })
-                    }
-                    setDraft(null)
-                  }}
-                  renaming={renaming}
-                  onCancelRenaming={() => setRenaming(null)}
-                  onCommitRenaming={async (name) => {
-                    if (!renaming) return
-                    const trimmed = name.trim()
-                    if (!trimmed || trimmed === renaming.name) {
-                      setRenaming(null)
+              {isEmpty && !draft ? <EmptyState /> : null}
+              <RootList
+                nodes={tree}
+                onCreateChild={(folderId, type) =>
+                  setDraft(
+                    type === "folder"
+                      ? { type: "folder", parentId: folderId }
+                      : { type: "file", parentId: folderId }
+                  )
+                }
+                onRenameFolder={(f) =>
+                  setRenaming({ type: "folder", id: f.id, name: f.name })
+                }
+                onRenameFile={(f) =>
+                  setRenaming({ type: "file", id: f.id, name: f.name })
+                }
+                draft={draft}
+                onCancelDraft={() => {
+                  setPendingRootFileAfterFolder(false)
+                  setDraft(null)
+                }}
+                onCommitDraft={async (name) => {
+                  if (!draft) return
+                  const trimmed = name.trim()
+                  if (!trimmed) return
+                  if (draft.type === "folder") {
+                    const newFolderId = await createFolder({
+                      projectId,
+                      name: trimmed,
+                      parentId: draft.parentId ?? null,
+                    })
+                    if (pendingRootFileAfterFolder) {
+                      setPendingRootFileAfterFolder(false)
+                      setDraft({ type: "file", parentId: newFolderId })
                       return
                     }
-                    if (renaming.type === "folder") {
-                      await updateFolder({ id: renaming.id, name: trimmed })
-                    } else {
-                      await updateFile({ id: renaming.id, name: trimmed })
-                    }
+                  } else {
+                    await createFile({
+                      projectId,
+                      folderId: draft.parentId,
+                      name: trimmed,
+                      content: { text: "" },
+                    })
+                  }
+                  setDraft(null)
+                }}
+                renaming={renaming}
+                onCancelRenaming={() => setRenaming(null)}
+                onCommitRenaming={async (name) => {
+                  if (!renaming) return
+                  const trimmed = name.trim()
+                  if (!trimmed || trimmed === renaming.name) {
                     setRenaming(null)
-                  }}
-                />
-              )}
+                    return
+                  }
+                  if (renaming.type === "folder") {
+                    await updateFolder({ id: renaming.id, name: trimmed })
+                  } else {
+                    await updateFile({ id: renaming.id, name: trimmed })
+                  }
+                  setRenaming(null)
+                }}
+              />
             </TreeView>
           </div>
         </ContextMenuTrigger>
         <ContextMenuContent>
-          {/* Root: Only create folder (files require a parent folder) */}
+          {/* Root actions */}
           <ContextMenuItem
             onClick={() => setDraft({ type: "folder", parentId: null })}
           >
             Create folder
+          </ContextMenuItem>
+          <ContextMenuSeparator />
+          <ContextMenuItem
+            disabled={!isEmpty}
+            onClick={() => {
+              if (!isEmpty) return
+              setPendingRootFileAfterFolder(true)
+              setDraft({ type: "folder", parentId: null })
+            }}
+          >
+            Create file
           </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>
@@ -250,15 +263,10 @@ function buildTree(folders: UIFolder[], files: UIFile[]): FolderNode[] {
   return roots
 }
 
-function EmptyState({ onCreateFolder }: { onCreateFolder: () => void }) {
+function EmptyState() {
   return (
-    <div className="text-xs text-muted-foreground px-2 py-3 grid gap-2">
-      <div>No folders yet.</div>
-      <div className="flex gap-2">
-        <Button size="sm" variant="outline" onClick={onCreateFolder}>
-          Create folder
-        </Button>
-      </div>
+    <div className="text-xs text-muted-foreground px-2 py-3">
+      Right-click to create a folder.
     </div>
   )
 }
