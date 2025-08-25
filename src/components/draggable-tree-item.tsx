@@ -142,3 +142,31 @@ export function DroppableArea({
     </div>
   )
 }
+
+type RootDropZoneProps = {
+  children?: ReactNode
+  id?: string
+  className?: string
+}
+
+export function RootDropZone({
+  children,
+  id = "root-drop-zone",
+  className,
+}: RootDropZoneProps) {
+  const { setNodeRef, isOver, active } = useDroppable({
+    id,
+    data: { type: "root-zone" },
+  })
+
+  const showActive = isOver && active
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={cn(className, showActive && "bg-accent/50")}
+    >
+      {children}
+    </div>
+  )
+}

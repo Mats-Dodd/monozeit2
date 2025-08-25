@@ -41,12 +41,17 @@ import {
   type DragStartEvent,
   DragOverlay,
   closestCenter,
+  pointerWithin,
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
 } from "@dnd-kit/core"
-import { DraggableTreeItem } from "@/components/draggable-tree-item"
+import {
+  DraggableTreeItem,
+  RootDropZone,
+  DroppableArea,
+} from "@/components/draggable-tree-item"
 
 type FolderNode = UIFolder & {
   childFolders: FolderNode[]
@@ -296,6 +301,9 @@ export function SidebarFileTree({
             : (targetData as UIFile).folder_id
 
         await moveItem(draggedData, newParentId)
+      } else if (overData?.type === "root-zone") {
+        // Dropped on the bottom root drop zone
+        await moveItem(draggedData, null)
       } else if (overId.startsWith("droppable-")) {
         // Dropped on a folder (droppable ID format: "droppable-{folderId}")
         const actualFolderId = overId.replace("droppable-", "")
@@ -335,7 +343,12 @@ export function SidebarFileTree({
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCenter}
+      collisionDetection={(args) => {
+        // Prefer pointerWithin so items below last row don't capture
+        const pointerHits = pointerWithin(args)
+        if (pointerHits.length > 0) return pointerHits
+        return closestCenter(args)
+      }}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
@@ -405,6 +418,21 @@ export function SidebarFileTree({
                     setRenaming(null)
                   }}
                 />
+                {/* Root-level insertion point after last root item */}
+                {(tree.rootFolders.length > 0 || tree.rootFiles.length > 0) && (
+                  <DroppableArea
+                    id={
+                      tree.rootFiles.length
+                        ? tree.rootFiles[tree.rootFiles.length - 1].id
+                        : tree.rootFolders[tree.rootFolders.length - 1].id
+                    }
+                    position="after"
+                    targetType={tree.rootFiles.length ? "file" : "folder"}
+                    className="mt-1"
+                  >
+                    <div />
+                  </DroppableArea>
+                )}
               </TreeView>
             </div>
           </ContextMenuTrigger>
@@ -478,6 +506,9 @@ export function SidebarFileTree({
           </AlertDialogContent>
         </AlertDialog>
       </TreeProvider>
+
+      {/* Bottom root drop zone */}
+      <RootDropZone className="h-20" />
 
       {/* Drag overlay */}
       <DragOverlay>
