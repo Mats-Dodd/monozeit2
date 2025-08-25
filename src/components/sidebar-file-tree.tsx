@@ -4,8 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useLiveQuery, eq } from "@tanstack/react-db"
 import type { UIFile, UIFolder } from "@/services/types"
 import { folderCollection, fileCollection } from "@/lib/collections"
-import { createFolder, updateFolder } from "@/services/folders"
-import { createFile, updateFile } from "@/services/files"
+import { createFolder, updateFolder, deleteFolder } from "@/services/folders"
+import { createFile, updateFile, deleteFile } from "@/services/files"
 import { Input } from "@/components/ui/input"
 import {
   ContextMenu,
@@ -14,6 +14,16 @@ import {
   ContextMenuTrigger,
   ContextMenuSeparator,
 } from "@/components/ui/context-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import {
   TreeProvider,
   TreeView,
@@ -47,6 +57,11 @@ type RenamingState =
   | { type: "file"; id: string; name: string }
   | null
 
+type DeletingState =
+  | { type: "folder"; id: string; name: string }
+  | { type: "file"; id: string; name: string }
+  | null
+
 export function SidebarFileTree({
   projectId,
 }: {
@@ -76,6 +91,8 @@ export function SidebarFileTree({
 
   const [draft, setDraft] = useState<DraftState>(null)
   const [renaming, setRenaming] = useState<RenamingState>(null)
+  const [deleting, setDeleting] = useState<DeletingState>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [pendingRootFileAfterFolder, setPendingRootFileAfterFolder] =
     useState(false)
   const [expandForDraft, setExpandForDraft] = useState<string | null>(null)
@@ -154,6 +171,15 @@ export function SidebarFileTree({
     [isMenuOpen]
   )
 
+  // Handle delete requests
+  const requestDeleteFolder = useCallback((folder: UIFolder) => {
+    setDeleting({ type: "folder", id: folder.id, name: folder.name })
+  }, [])
+
+  const requestDeleteFile = useCallback((file: UIFile) => {
+    setDeleting({ type: "file", id: file.id, name: file.name })
+  }, [])
+
   return (
     <TreeProvider defaultExpandedIds={defaultExpanded} className="w-full">
       <ExpansionPersistence projectId={projectId} />
@@ -171,6 +197,8 @@ export function SidebarFileTree({
                 onCreateChild={handleCreateChild}
                 onRenameFolder={(f) => handleRename(f, "folder")}
                 onRenameFile={(f) => handleRename(f, "file")}
+                onDeleteFolder={requestDeleteFolder}
+                onDeleteFile={requestDeleteFile}
                 draft={draft}
                 onCancelDraft={() => {
                   setPendingRootFileAfterFolder(false)
@@ -249,6 +277,49 @@ export function SidebarFileTree({
           </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog
+        open={!!deleting}
+        onOpenChange={(open) => !open && setDeleting(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {deleting?.type === "folder" ? "Delete folder" : "Delete file"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleting?.type === "folder"
+                ? `Are you sure you want to delete "${deleting.name}"? This will permanently delete the folder and all its contents, including any nested folders and files.`
+                : `Are you sure you want to delete "${deleting?.name}"? This action cannot be undone.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isDeleting}
+              onClick={async () => {
+                if (!deleting) return
+                setIsDeleting(true)
+                try {
+                  if (deleting.type === "folder") {
+                    await deleteFolder(deleting.id)
+                  } else {
+                    await deleteFile(deleting.id)
+                  }
+                  setDeleting(null)
+                } catch (error) {
+                  console.error("Failed to delete:", error)
+                } finally {
+                  setIsDeleting(false)
+                }
+              }}
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </TreeProvider>
   )
 }
@@ -359,6 +430,8 @@ function RootList(props: {
   onCreateChild: (folderId: string, type: "folder" | "file") => void
   onRenameFolder: (f: UIFolder) => void
   onRenameFile: (f: UIFile) => void
+  onDeleteFolder: (f: UIFolder) => void
+  onDeleteFile: (f: UIFile) => void
   draft: DraftState
   onCancelDraft: () => void
   onCommitDraft: (name: string) => Promise<void>
@@ -371,6 +444,8 @@ function RootList(props: {
     onCreateChild,
     onRenameFolder,
     onRenameFile,
+    onDeleteFolder,
+    onDeleteFile,
     draft,
     onCancelDraft,
     onCommitDraft,
@@ -389,6 +464,8 @@ function RootList(props: {
           onCreateChild={onCreateChild}
           onRenameFolder={onRenameFolder}
           onRenameFile={onRenameFile}
+          onDeleteFolder={onDeleteFolder}
+          onDeleteFile={onDeleteFile}
           draft={draft}
           onCancelDraft={onCancelDraft}
           onCommitDraft={onCommitDraft}
@@ -422,6 +499,8 @@ function FolderItem(props: {
   onCreateChild: (folderId: string, type: "folder" | "file") => void
   onRenameFolder: (f: UIFolder) => void
   onRenameFile: (f: UIFile) => void
+  onDeleteFolder: (f: UIFolder) => void
+  onDeleteFile: (f: UIFile) => void
   draft: DraftState
   onCancelDraft: () => void
   onCommitDraft: (name: string) => Promise<void>
@@ -434,6 +513,8 @@ function FolderItem(props: {
     onCreateChild,
     onRenameFolder,
     onRenameFile,
+    onDeleteFolder,
+    onDeleteFile,
     draft,
     onCancelDraft,
     onCommitDraft,
@@ -482,6 +563,10 @@ function FolderItem(props: {
           <ContextMenuItem onClick={() => onCreateChild(folder.id, "file")}>
             Create file
           </ContextMenuItem>
+          <ContextMenuSeparator />
+          <ContextMenuItem onClick={() => onDeleteFolder(folder)}>
+            Delete
+          </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>
 
@@ -513,6 +598,8 @@ function FolderItem(props: {
               onCreateChild={onCreateChild}
               onRenameFolder={onRenameFolder}
               onRenameFile={onRenameFile}
+              onDeleteFolder={onDeleteFolder}
+              onDeleteFile={onDeleteFile}
               draft={draft}
               onCancelDraft={onCancelDraft}
               onCommitDraft={onCommitDraft}
@@ -548,6 +635,10 @@ function FolderItem(props: {
                 >
                   <ContextMenuItem onClick={() => onRenameFile(file)}>
                     Rename
+                  </ContextMenuItem>
+                  <ContextMenuSeparator />
+                  <ContextMenuItem onClick={() => onDeleteFile(file)}>
+                    Delete
                   </ContextMenuItem>
                 </ContextMenuContent>
               </ContextMenu>
