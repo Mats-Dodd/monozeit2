@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useLiveQuery, eq } from "@tanstack/react-db"
 import type { UIFile, UIFolder } from "@/services/types"
 import { folderCollection, fileCollection } from "@/lib/collections"
@@ -78,6 +78,9 @@ export function SidebarFileTree({
   const [renaming, setRenaming] = useState<RenamingState>(null)
   const [pendingRootFileAfterFolder, setPendingRootFileAfterFolder] =
     useState(false)
+  const [expandForDraft, setExpandForDraft] = useState<string | null>(null)
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null)
 
   const tree = useMemo(() => buildTree(folders, files), [folders, files])
 
@@ -103,29 +106,68 @@ export function SidebarFileTree({
 
   const isEmpty = tree.length === 0
 
+  // Handle menu close and execute pending actions
+  useEffect(() => {
+    if (!isMenuOpen && pendingAction) {
+      // Wait for menu close animation to complete
+      requestAnimationFrame(() => {
+        pendingAction()
+        setPendingAction(null)
+      })
+    }
+  }, [isMenuOpen, pendingAction])
+
+  // Auto-expand parent folder when creating a draft child
+  const handleCreateChild = useCallback(
+    (folderId: string, type: "folder" | "file") => {
+      const action = () => {
+        setExpandForDraft(folderId)
+        setDraft(
+          type === "folder"
+            ? { type: "folder", parentId: folderId }
+            : { type: "file", parentId: folderId }
+        )
+      }
+
+      if (isMenuOpen) {
+        setPendingAction(() => action)
+      } else {
+        action()
+      }
+    },
+    [isMenuOpen]
+  )
+
+  // Handle rename actions
+  const handleRename = useCallback(
+    (item: UIFolder | UIFile, type: "folder" | "file") => {
+      const action = () => {
+        setRenaming({ type, id: item.id, name: item.name })
+      }
+
+      if (isMenuOpen) {
+        setPendingAction(() => action)
+      } else {
+        action()
+      }
+    },
+    [isMenuOpen]
+  )
+
   return (
     <TreeProvider defaultExpandedIds={defaultExpanded} className="w-full">
       <ExpansionPersistence projectId={projectId} />
-      <ContextMenu>
+      <AutoExpandForDraft expandForDraft={expandForDraft} />
+      <ContextMenu onOpenChange={setIsMenuOpen}>
         <ContextMenuTrigger asChild>
           <div>
             <TreeView className="px-1 py-1">
               {isEmpty && !draft ? <EmptyState /> : null}
               <RootList
                 nodes={tree}
-                onCreateChild={(folderId, type) =>
-                  setDraft(
-                    type === "folder"
-                      ? { type: "folder", parentId: folderId }
-                      : { type: "file", parentId: folderId }
-                  )
-                }
-                onRenameFolder={(f) =>
-                  setRenaming({ type: "folder", id: f.id, name: f.name })
-                }
-                onRenameFile={(f) =>
-                  setRenaming({ type: "file", id: f.id, name: f.name })
-                }
+                onCreateChild={handleCreateChild}
+                onRenameFolder={(f) => handleRename(f, "folder")}
+                onRenameFile={(f) => handleRename(f, "file")}
                 draft={draft}
                 onCancelDraft={() => {
                   setPendingRootFileAfterFolder(false)
@@ -176,10 +218,15 @@ export function SidebarFileTree({
             </TreeView>
           </div>
         </ContextMenuTrigger>
-        <ContextMenuContent>
+        <ContextMenuContent onCloseAutoFocus={(e) => e.preventDefault()}>
           {/* Root actions */}
           <ContextMenuItem
-            onClick={() => setDraft({ type: "folder", parentId: null })}
+            onClick={() => {
+              const action = () => {
+                setDraft({ type: "folder", parentId: null })
+              }
+              setPendingAction(() => action)
+            }}
           >
             Create folder
           </ContextMenuItem>
@@ -188,8 +235,11 @@ export function SidebarFileTree({
             disabled={!isEmpty}
             onClick={() => {
               if (!isEmpty) return
-              setPendingRootFileAfterFolder(true)
-              setDraft({ type: "folder", parentId: null })
+              const action = () => {
+                setPendingRootFileAfterFolder(true)
+                setDraft({ type: "folder", parentId: null })
+              }
+              setPendingAction(() => action)
             }}
           >
             Create file
@@ -222,6 +272,32 @@ function ExpansionPersistence({ projectId }: { projectId: string }) {
 
 function useTreeBridge() {
   return useTree()
+}
+
+function AutoExpandForDraft({
+  expandForDraft,
+}: {
+  expandForDraft: string | null
+}) {
+  const { expandedIds, toggleExpanded } = useTree()
+
+  useEffect(() => {
+    if (expandForDraft && !expandedIds.has(expandForDraft)) {
+      toggleExpanded(expandForDraft)
+      // Scroll the expanded folder into view
+      setTimeout(() => {
+        const el = document.querySelector(`[data-node-id="${expandForDraft}"]`)
+        if (el && "scrollIntoView" in el) {
+          ;(el as HTMLElement).scrollIntoView({
+            behavior: "smooth",
+            block: "nearest",
+          })
+        }
+      }, 150)
+    }
+  }, [expandForDraft, expandedIds, toggleExpanded])
+
+  return null
 }
 
 function buildTree(folders: UIFolder[], files: UIFile[]): FolderNode[] {
@@ -388,7 +464,7 @@ function FolderItem(props: {
             </TreeNodeTrigger>
           </div>
         </ContextMenuTrigger>
-        <ContextMenuContent>
+        <ContextMenuContent onCloseAutoFocus={(e) => e.preventDefault()}>
           <ContextMenuItem onClick={() => onRenameFolder(folder)}>
             Rename
           </ContextMenuItem>
@@ -460,7 +536,9 @@ function FolderItem(props: {
                     </TreeNodeTrigger>
                   </div>
                 </ContextMenuTrigger>
-                <ContextMenuContent>
+                <ContextMenuContent
+                  onCloseAutoFocus={(e) => e.preventDefault()}
+                >
                   <ContextMenuItem onClick={() => onRenameFile(file)}>
                     Rename
                   </ContextMenuItem>
@@ -471,6 +549,62 @@ function FolderItem(props: {
         </div>
       </TreeNodeContent>
     </TreeNode>
+  )
+}
+
+// Component to safely focus input after ensuring no aria-hidden conflicts
+function SafeFocusInput({
+  value,
+  placeholder,
+  onChange,
+  onKeyDown,
+  onBlur,
+  className,
+}: {
+  value: string
+  placeholder?: string
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+  onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void
+  onBlur: (e: React.FocusEvent<HTMLInputElement>) => void
+  className?: string
+}) {
+  const inputRef = useRef<HTMLInputElement | null>(null)
+
+  useEffect(() => {
+    const focusWhenSafe = () => {
+      if (!inputRef.current) return
+
+      // Check if any ancestor has aria-hidden
+      let element = inputRef.current.parentElement
+      while (element) {
+        if (element.getAttribute("aria-hidden") === "true") {
+          // Wait for aria-hidden to be removed
+          requestAnimationFrame(focusWhenSafe)
+          return
+        }
+        element = element.parentElement
+      }
+
+      // Safe to focus now
+      inputRef.current.focus()
+      inputRef.current.select()
+    }
+
+    // Small delay to ensure DOM is stable
+    const timer = setTimeout(focusWhenSafe, 100)
+    return () => clearTimeout(timer)
+  }, [])
+
+  return (
+    <Input
+      ref={inputRef}
+      value={value}
+      placeholder={placeholder}
+      onChange={onChange}
+      onKeyDown={onKeyDown}
+      onBlur={onBlur}
+      className={className}
+    />
   )
 }
 
@@ -486,28 +620,48 @@ function InlineNameEditor({
   onCancel: () => void
 }) {
   const [value, setValue] = useState(defaultValue)
-  const inputRef = useRef<HTMLInputElement | null>(null)
+  const mountedRef = useRef(false)
 
   useEffect(() => {
-    inputRef.current?.focus()
-    inputRef.current?.select()
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+    }
   }, [])
 
+  const handleBlur = useCallback(
+    (e: React.FocusEvent) => {
+      // Don't cancel if focus is moving within the sidebar
+      const relatedTarget = e.relatedTarget as HTMLElement
+      if (relatedTarget?.closest('[data-slot="sidebar"]')) {
+        return
+      }
+
+      // Small delay to prevent issues with rapid focus changes
+      setTimeout(() => {
+        if (mountedRef.current) {
+          onCancel()
+        }
+      }, 50)
+    },
+    [onCancel]
+  )
+
   return (
-    <div className="flex-1">
-      <Input
-        ref={inputRef}
+    <div className="flex-1" onClick={(e) => e.stopPropagation()}>
+      <SafeFocusInput
         value={value}
         placeholder={placeholder}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={(e) => {
+          e.stopPropagation()
           if (e.key === "Enter") {
             void onCommit(value)
           } else if (e.key === "Escape") {
             onCancel()
           }
         }}
-        onBlur={() => onCancel()}
+        onBlur={handleBlur}
         className="h-7 py-1 px-2 text-xs"
       />
     </div>

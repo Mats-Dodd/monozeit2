@@ -213,7 +213,11 @@ export const TreeNode = ({
         parentPath: currentPath,
       }}
     >
-      <div className={cn("select-none", className)} {...props}>
+      <div
+        className={cn("select-none", className)}
+        data-node-id={nodeId}
+        {...props}
+      >
         {children}
       </div>
     </TreeNodeContext.Provider>
