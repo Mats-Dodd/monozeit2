@@ -47,9 +47,9 @@ export const filesTable = pgTable("files", {
   project_id: uuid("project_id")
     .notNull()
     .references(() => projectsTable.id, { onDelete: "cascade" }),
-  folder_id: uuid("folder_id")
-    .notNull()
-    .references(() => foldersTable.id, { onDelete: "cascade" }),
+  folder_id: uuid("folder_id").references(() => foldersTable.id, {
+    onDelete: "cascade",
+  }),
   name: varchar({ length: 255 }).notNull(),
   content: jsonb("content").notNull(),
   created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),

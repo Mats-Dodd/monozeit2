@@ -48,12 +48,12 @@ export type FolderUpdateUIPatch = {
 export type FileCreateUI = {
   id?: string
   projectId: string
-  folderId: string
+  folderId?: string | null
   name: string
   content?: JsonValue
 }
 export type FileUpdateUIPatch = {
   name?: string
-  folderId?: string
+  folderId?: string | null
   content?: JsonValue
 }

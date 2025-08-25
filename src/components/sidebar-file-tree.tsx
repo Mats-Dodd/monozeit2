@@ -41,6 +41,11 @@ type FolderNode = UIFolder & {
   files: UIFile[]
 }
 
+type TreeData = {
+  rootFolders: FolderNode[]
+  rootFiles: UIFile[]
+}
+
 type DraftState =
   | {
       type: "folder"
@@ -48,7 +53,7 @@ type DraftState =
     }
   | {
       type: "file"
-      parentId: string
+      parentId: string | null
     }
   | null
 
@@ -121,7 +126,7 @@ export function SidebarFileTree({
     )
   }
 
-  const isEmpty = tree.length === 0
+  const isEmpty = tree.rootFolders.length === 0 && tree.rootFiles.length === 0
 
   // Handle menu close and execute pending actions
   useEffect(() => {
@@ -193,7 +198,8 @@ export function SidebarFileTree({
             <TreeView className="px-1 py-1">
               {isEmpty && !draft ? <EmptyState /> : null}
               <RootList
-                nodes={tree}
+                folders={tree.rootFolders}
+                files={tree.rootFiles}
                 onCreateChild={handleCreateChild}
                 onRenameFolder={(f) => handleRename(f, "folder")}
                 onRenameFile={(f) => handleRename(f, "file")}
@@ -222,7 +228,7 @@ export function SidebarFileTree({
                   } else {
                     await createFile({
                       projectId,
-                      folderId: draft.parentId,
+                      folderId: draft.parentId ?? null,
                       name: trimmed,
                       content: { text: "" },
                     })
@@ -261,14 +267,10 @@ export function SidebarFileTree({
           >
             Create folder
           </ContextMenuItem>
-          <ContextMenuSeparator />
           <ContextMenuItem
-            disabled={!isEmpty}
             onClick={() => {
-              if (!isEmpty) return
               const action = () => {
-                setPendingRootFileAfterFolder(true)
-                setDraft({ type: "folder", parentId: null })
+                setDraft({ type: "file", parentId: null })
               }
               setPendingAction(() => action)
             }}
@@ -378,7 +380,7 @@ function AutoExpandForDraft({
   return null
 }
 
-function buildTree(folders: UIFolder[], files: UIFile[]): FolderNode[] {
+function buildTree(folders: UIFolder[], files: UIFile[]): TreeData {
   const byParent = new Map<string | null, FolderNode[]>()
   const folderById = new Map<string, FolderNode>()
 
@@ -400,9 +402,17 @@ function buildTree(folders: UIFolder[], files: UIFile[]): FolderNode[] {
     byParent.get(parentId)!.push(f)
   }
 
+  // Separate root files from folder files
+  const rootFiles: UIFile[] = []
   for (const file of sortedFiles) {
-    const parent = folderById.get(file.folder_id)
-    if (parent) parent.files.push(file)
+    if (file.folder_id === null || file.folder_id === undefined) {
+      rootFiles.push(file)
+    } else {
+      const parent = folderById.get(file.folder_id)
+      if (parent) {
+        parent.files.push(file)
+      }
+    }
   }
 
   const attachChildren = (nodes: FolderNode[]) => {
@@ -412,21 +422,26 @@ function buildTree(folders: UIFolder[], files: UIFile[]): FolderNode[] {
     }
   }
 
-  const roots = byParent.get(null) ?? []
-  attachChildren(roots)
-  return roots
+  const rootFolders = byParent.get(null) ?? []
+  attachChildren(rootFolders)
+
+  return {
+    rootFolders,
+    rootFiles,
+  }
 }
 
 function EmptyState() {
   return (
     <div className="text-xs text-muted-foreground px-2 py-3">
-      Right-click to create a folder.
+      Right-click to create a folder or file.
     </div>
   )
 }
 
 function RootList(props: {
-  nodes: FolderNode[]
+  folders: FolderNode[]
+  files: UIFile[]
   onCreateChild: (folderId: string, type: "folder" | "file") => void
   onRenameFolder: (f: UIFolder) => void
   onRenameFile: (f: UIFile) => void
@@ -440,7 +455,8 @@ function RootList(props: {
   onCommitRenaming: (name: string) => Promise<void>
 }) {
   const {
-    nodes,
+    folders,
+    files,
     onCreateChild,
     onRenameFolder,
     onRenameFile,
@@ -456,11 +472,12 @@ function RootList(props: {
 
   return (
     <div className="space-y-1">
-      {nodes.map((folder, idx) => (
+      {/* Root folders */}
+      {folders.map((folder, idx) => (
         <FolderItem
           key={folder.id}
           folder={folder}
-          isLast={idx === nodes.length - 1}
+          isLast={idx === folders.length - 1}
           onCreateChild={onCreateChild}
           onRenameFolder={onRenameFolder}
           onRenameFile={onRenameFile}
@@ -475,14 +492,48 @@ function RootList(props: {
         />
       ))}
 
-      {/* Root-level draft folder */}
-      {draft && draft.type === "folder" && draft.parentId === null && (
+      {/* Root files */}
+      {files.map((file) => (
+        <TreeNode key={file.id} nodeId={file.id}>
+          <ContextMenu>
+            <ContextMenuTrigger asChild>
+              <div>
+                <TreeNodeTrigger>
+                  <TreeExpander hasChildren={false} />
+                  <TreeIcon hasChildren={false} />
+                  {renaming?.type === "file" && renaming.id === file.id ? (
+                    <InlineNameEditor
+                      defaultValue={renaming.name}
+                      onCancel={onCancelRenaming}
+                      onCommit={onCommitRenaming}
+                    />
+                  ) : (
+                    <TreeLabel>{file.name}</TreeLabel>
+                  )}
+                </TreeNodeTrigger>
+              </div>
+            </ContextMenuTrigger>
+            <ContextMenuContent onCloseAutoFocus={(e) => e.preventDefault()}>
+              <ContextMenuItem onClick={() => onRenameFile(file)}>
+                Rename
+              </ContextMenuItem>
+              <ContextMenuSeparator />
+              <ContextMenuItem onClick={() => onDeleteFile(file)}>
+                Delete
+              </ContextMenuItem>
+            </ContextMenuContent>
+          </ContextMenu>
+        </TreeNode>
+      ))}
+
+      {/* Root-level draft */}
+      {draft && draft.parentId === null && (
         <TreeNode nodeId="__draft_root__">
           <TreeNodeTrigger>
             <TreeExpander hasChildren={false} />
-            <TreeIcon hasChildren />
+            <TreeIcon hasChildren={draft.type === "folder"} />
             <InlineNameEditor
-              placeholder="New folder"
+              placeholder={draft.type === "folder" ? "New folder" : "New file"}
               onCancel={onCancelDraft}
               onCommit={onCommitDraft}
             />
