@@ -32,6 +32,7 @@ import {
 import { useMemo, useRef, useState } from "react"
 import { createProject } from "@/services/projects"
 import type { ProjectCreateUI } from "@/services/types"
+import { SidebarFileTree } from "@/components/sidebar-file-tree"
 
 interface AppSidebarProps {
   session: {
@@ -144,6 +145,12 @@ export function AppSidebar({
                 <SelectItem value="__create__">Create new…</SelectItem>
               </SelectContent>
             </Select>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        <SidebarGroup>
+          <SidebarGroupLabel>Files</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarFileTree projectId={selectedProjectId} />
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>

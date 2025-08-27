@@ -15,7 +15,7 @@ type JsonValue =
 export async function createFile(args: {
   id?: string
   projectId: string
-  folderId: string
+  folderId?: string | null
   name: string
   content?: JsonValue
 }): Promise<string> {
@@ -29,14 +29,17 @@ export async function createFile(args: {
 export async function updateFile(args: {
   id: string
   name?: string
-  folderId?: string
+  folderId?: string | null
   content?: JsonValue
 }): Promise<void> {
   const { id, ...rest } = args
+
   const dbPatch = toDbFileUpdate(rest)
+
   updateFileSchema
     .pick({ name: true, folder_id: true, content: true })
     .parse(dbPatch)
+
   fileCollection.update(id, (draft) => {
     assignDefined(draft, dbPatch)
   })

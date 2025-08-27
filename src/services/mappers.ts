@@ -52,16 +52,17 @@ export function toDbFileCreate(ui: Omit<FileCreateUI, "id"> & { id: string }) {
   return {
     id: ui.id,
     project_id: ui.projectId,
-    folder_id: ui.folderId,
+    folder_id: ui.folderId ?? null,
     name: ui.name,
     content: (ui.content ?? { text: "" }) as JsonValue,
   }
 }
 
 export function toDbFileUpdate(ui: FileUpdateUIPatch) {
-  return {
+  const result = {
     name: ui.name,
     folder_id: ui.folderId,
     content: ui.content as JsonValue | undefined,
   }
+  return result
 }

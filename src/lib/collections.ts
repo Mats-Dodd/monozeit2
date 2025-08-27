@@ -159,6 +159,9 @@ export const fileCollection = createCollection(
           return new Date(date)
         },
       },
+      onError: (error) => {
+        console.error("Electric files collection error:", error)
+      },
     },
     schema: selectFileSchema.extend({
       created_at: z.date().optional(),

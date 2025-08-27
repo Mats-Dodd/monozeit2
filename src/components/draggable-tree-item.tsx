@@ -1,0 +1,179 @@
+"use client"
+
+import { useDraggable, useDroppable } from "@dnd-kit/core"
+import { type ReactNode } from "react"
+import { cn } from "@/lib/utils"
+
+type DraggableTreeItemProps = {
+  children: ReactNode
+  id: string
+  data: {
+    type: "file" | "folder"
+    name: string
+    id: string
+    parentId: string | null
+  }
+  canDrop?: boolean
+  className?: string
+  disabled?: boolean
+}
+
+export function DraggableTreeItem({
+  children,
+  id,
+  data,
+  canDrop = true,
+  className,
+  disabled = false,
+}: DraggableTreeItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef: setDraggableRef,
+    transform,
+    isDragging,
+  } = useDraggable({
+    id,
+    data,
+    disabled,
+  })
+
+  const {
+    setNodeRef: setDroppableRef,
+    isOver,
+    active,
+  } = useDroppable({
+    id: `droppable-${id}`,
+    data: {
+      ...data,
+      accepts: ["file", "folder"],
+    },
+    disabled: !canDrop,
+  })
+
+  // Only folders can accept drops of other items
+  const isFolder = data.type === "folder"
+  const isDragTarget = isOver && active && isFolder
+  const isBeingDragged = isDragging
+
+  // Prevent dropping a folder into itself or its descendants
+  const isInvalidDrop =
+    isOver &&
+    active?.data.current?.type === "folder" &&
+    (active.id === id || isDescendantOf(active.id as string, id))
+
+  const style = transform
+    ? {
+        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+      }
+    : undefined
+
+  function setNodeRef(element: HTMLElement | null) {
+    setDraggableRef(element)
+    if (isFolder) {
+      setDroppableRef(element)
+    }
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        className,
+        isBeingDragged && "opacity-70",
+        isDragTarget &&
+          !isInvalidDrop &&
+          "ring-1 ring-inset ring-primary/30 rounded-sm",
+        isInvalidDrop &&
+          "ring-1 ring-inset ring-destructive/30 rounded-sm cursor-not-allowed"
+      )}
+      aria-invalid={isInvalidDrop || undefined}
+      {...attributes}
+      {...listeners}
+    >
+      {children}
+    </div>
+  )
+}
+
+// Helper function to check if a folder is a descendant of another folder
+// In a real implementation, this would need access to the folder hierarchy
+function isDescendantOf(_childId: string, _parentId: string): boolean {
+  // This is a placeholder - in the actual implementation, we would
+  // traverse the folder tree to check if childId is a descendant of parentId
+  // For now, we'll implement this logic in the main component where we have
+  // access to the full folder tree
+  return false
+}
+
+type DroppableAreaProps = {
+  children: ReactNode
+  id: string
+  position: "before" | "after"
+  targetType: "file" | "folder"
+  className?: string
+}
+
+export function DroppableArea({
+  children,
+  id,
+  position,
+  targetType,
+  className,
+}: DroppableAreaProps) {
+  const { setNodeRef, isOver, active } = useDroppable({
+    id: `${position}-${id}`,
+    data: {
+      type: "insertion-point",
+      position,
+      targetId: id,
+      targetType,
+    },
+  })
+
+  const showDropIndicator = isOver && active
+
+  return (
+    <div ref={setNodeRef} className={cn(className)}>
+      {showDropIndicator && position === "before" && (
+        <div className="h-px bg-primary/50 mx-2 mb-1" />
+      )}
+      {children}
+      {showDropIndicator && position === "after" && (
+        <div className="h-px bg-primary/50 mx-2 mt-1" />
+      )}
+    </div>
+  )
+}
+
+type RootDropZoneProps = {
+  children?: ReactNode
+  id?: string
+  className?: string
+}
+
+export function RootDropZone({
+  children,
+  id = "root-drop-zone",
+  className,
+}: RootDropZoneProps) {
+  const { setNodeRef, isOver, active } = useDroppable({
+    id,
+    data: { type: "root-zone" },
+  })
+
+  const showActive = isOver && active
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={cn(
+        className,
+        showActive && "ring-1 ring-primary/20 rounded-sm"
+      )}
+    >
+      {children}
+    </div>
+  )
+}
