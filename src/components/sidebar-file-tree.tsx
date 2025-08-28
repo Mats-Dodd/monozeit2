@@ -53,6 +53,14 @@ import {
   DroppableArea,
 } from "@/components/draggable-tree-item"
 import { handleFileClick } from "@/services/tabs"
+import { LoroDoc } from "loro-crdt"
+
+export function getEmptyLoroDoc() {
+  const loroDoc = new LoroDoc()
+  const bytes = loroDoc.export({ mode: "snapshot" })
+  const base64Content = btoa(String.fromCharCode(...bytes))
+  return base64Content
+}
 
 type FolderNode = UIFolder & {
   childFolders: FolderNode[]
@@ -398,12 +406,14 @@ export function SidebarFileTree({
                         return
                       }
                     } else {
-                      await createFile({
+                      const newFileId = await createFile({
                         projectId,
                         folderId: draft.parentId ?? null,
                         name: trimmed,
-                        content: "",
+                        content: getEmptyLoroDoc(),
                       })
+                      // Select the newly created file
+                      handleFileClick(newFileId)
                     }
                     setDraft(null)
                   }}
