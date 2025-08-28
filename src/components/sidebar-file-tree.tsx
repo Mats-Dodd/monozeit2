@@ -97,27 +97,31 @@ export function SidebarFileTree({
 }: {
   projectId: string | undefined
 }) {
-  const { data: folders = [] } = useLiveQuery(
-    (q) =>
-      q
-        .from({ folderCollection })
-        .where(({ folderCollection }) =>
-          projectId ? eq(folderCollection.project_id, projectId) : true
-        )
-        .orderBy(({ folderCollection }) => folderCollection.name),
-    [projectId]
-  )
+  const { data: folders = [] } = projectId
+    ? useLiveQuery(
+        (q) =>
+          q
+            .from({ folderCollection })
+            .where(({ folderCollection }) =>
+              eq(folderCollection.project_id, projectId)
+            )
+            .orderBy(({ folderCollection }) => folderCollection.name),
+        [projectId]
+      )
+    : { data: [] }
 
-  const { data: files = [] } = useLiveQuery(
-    (q) =>
-      q
-        .from({ fileCollection })
-        .where(({ fileCollection }) =>
-          projectId ? eq(fileCollection.project_id, projectId) : true
-        )
-        .orderBy(({ fileCollection }) => fileCollection.name),
-    [projectId]
-  )
+  const { data: files = [] } = projectId
+    ? useLiveQuery(
+        (q) =>
+          q
+            .from({ fileCollection })
+            .where(({ fileCollection }) =>
+              eq(fileCollection.project_id, projectId)
+            )
+            .orderBy(({ fileCollection }) => fileCollection.name),
+        [projectId]
+      )
+    : { data: [] }
 
   const [draft, setDraft] = useState<DraftState>(null)
   const [renaming, setRenaming] = useState<RenamingState>(null)
@@ -398,7 +402,7 @@ export function SidebarFileTree({
                         projectId,
                         folderId: draft.parentId ?? null,
                         name: trimmed,
-                        content: { text: "" },
+                        content: "",
                       })
                     }
                     setDraft(null)
