@@ -2,69 +2,41 @@ import { useEditor, EditorContent } from "@tiptap/react"
 import { FloatingMenu, BubbleMenu } from "@tiptap/react/menus"
 import { extensions } from "./extensions"
 import { useCurrentFileID } from "@/services/tabs"
-import { eq, useLiveQuery } from "@tanstack/react-db"
-import { fileCollection } from "@/lib/collections"
 import { updateFile } from "@/services/files"
-import { useCallback, useEffect, useRef } from "react"
+import { useCallback } from "react"
+import {
+  useDebouncedCallback,
+  useGetCurrentFileContent,
+  useSyncEditorContent,
+} from "./hooks"
 
 const Tiptap = () => {
   const currentFileID = useCurrentFileID()
-  const saveTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined)
 
-  const { data: currentFile } = useLiveQuery(
-    (q) =>
-      q.from({ c: fileCollection }).where(({ c }) => eq(c.id, currentFileID)),
-    [currentFileID]
-  )
+  const content = useGetCurrentFileContent(currentFileID)
 
-  const currentFileData = currentFile?.[0]
-
-  // Debounced save function
-  const debouncedSave = useCallback(
+  const saveNow = useCallback(
     (content: string) => {
       if (!currentFileID) return
-
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current)
-      }
-
-      saveTimeoutRef.current = setTimeout(() => {
-        updateFile({ id: currentFileID, content })
-        console.log("saved")
-      }, 500)
+      updateFile({ id: currentFileID, content })
+      if (import.meta.env?.DEV) console.log("saved")
     },
     [currentFileID]
   )
+  const debouncedSave = useDebouncedCallback(saveNow, 500)
 
   const editor = useEditor(
     {
       extensions,
-      content: currentFileData?.content,
+      content,
       onUpdate: ({ editor }) => {
-        const html = editor.getHTML()
-        if (html !== (currentFileData?.content ?? "")) {
-          debouncedSave(html)
-        }
+        debouncedSave(editor.getHTML())
       },
     },
     [currentFileID]
   )
 
-  // Sync external content changes without re-creating the editor or stealing focus
-  useEffect(() => {
-    if (!editor) return
-    const newContent = currentFileData?.content ?? ""
-    const currentHtml = editor.getHTML()
-    if (newContent === currentHtml) return
-
-    const wasFocused = editor.isFocused
-    const { from, to } = editor.state.selection
-    editor.commands.setContent(newContent, { emitUpdate: false })
-    if (wasFocused) {
-      editor.view.focus()
-      editor.commands.setTextSelection({ from, to })
-    }
-  }, [editor, currentFileData?.content])
+  useSyncEditorContent(editor, content)
 
   return (
     <>
