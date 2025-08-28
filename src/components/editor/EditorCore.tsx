@@ -3,7 +3,7 @@ import { FloatingMenu, BubbleMenu } from "@tiptap/react/menus"
 import { extensions as baseExtensions } from "./extensions"
 import { useDebouncedCallback } from "./hooks"
 import { updateFile } from "@/services/files"
-import { useCallback } from "react"
+import { useCallback, useMemo } from "react"
 import {
   getLoroExtensions,
   exportLoroSnapshotBase64,
@@ -17,15 +17,23 @@ export function EditorCore({
   fileId: string
   base64Content: string | null
 }) {
-  const loroDoc = useLoroDocForFile(fileId, base64Content)
+  const { loroDoc, markSnapshotApplied } = useLoroDocForFile(
+    fileId,
+    base64Content
+  )
 
-  const extensions = [...baseExtensions, getLoroExtensions(loroDoc)]
+  const extensions = useMemo(
+    () => [...baseExtensions, getLoroExtensions(loroDoc)],
+    [loroDoc]
+  )
 
   const saveNow = useCallback(() => {
     const base64 = exportLoroSnapshotBase64(loroDoc)
+    // Mark this snapshot as applied to avoid re-importing our own save
+    markSnapshotApplied(base64)
     updateFile({ id: fileId, content: base64 })
     if (import.meta.env?.DEV) console.log("saved")
-  }, [fileId, loroDoc])
+  }, [fileId, loroDoc, markSnapshotApplied])
   const debouncedSave = useDebouncedCallback(saveNow, 500)
 
   const editor = useEditor(
@@ -35,7 +43,7 @@ export function EditorCore({
         debouncedSave()
       },
     },
-    [fileId, loroDoc]
+    [fileId]
   )
 
   return (
