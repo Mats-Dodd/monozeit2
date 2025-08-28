@@ -52,6 +52,7 @@ import {
   RootDropZone,
   DroppableArea,
 } from "@/components/draggable-tree-item"
+import { handleFileClick } from "@/services/tabs"
 
 type FolderNode = UIFolder & {
   childFolders: FolderNode[]
@@ -96,27 +97,31 @@ export function SidebarFileTree({
 }: {
   projectId: string | undefined
 }) {
-  const { data: folders = [] } = useLiveQuery(
-    (q) =>
-      q
-        .from({ folderCollection })
-        .where(({ folderCollection }) =>
-          projectId ? eq(folderCollection.project_id, projectId) : true
-        )
-        .orderBy(({ folderCollection }) => folderCollection.name),
-    [projectId]
-  )
+  const { data: folders = [] } = projectId
+    ? useLiveQuery(
+        (q) =>
+          q
+            .from({ folderCollection })
+            .where(({ folderCollection }) =>
+              eq(folderCollection.project_id, projectId)
+            )
+            .orderBy(({ folderCollection }) => folderCollection.name),
+        [projectId]
+      )
+    : { data: [] }
 
-  const { data: files = [] } = useLiveQuery(
-    (q) =>
-      q
-        .from({ fileCollection })
-        .where(({ fileCollection }) =>
-          projectId ? eq(fileCollection.project_id, projectId) : true
-        )
-        .orderBy(({ fileCollection }) => fileCollection.name),
-    [projectId]
-  )
+  const { data: files = [] } = projectId
+    ? useLiveQuery(
+        (q) =>
+          q
+            .from({ fileCollection })
+            .where(({ fileCollection }) =>
+              eq(fileCollection.project_id, projectId)
+            )
+            .orderBy(({ fileCollection }) => fileCollection.name),
+        [projectId]
+      )
+    : { data: [] }
 
   const [draft, setDraft] = useState<DraftState>(null)
   const [renaming, setRenaming] = useState<RenamingState>(null)
@@ -371,6 +376,7 @@ export function SidebarFileTree({
                   onRenameFile={(f) => handleRename(f, "file")}
                   onDeleteFolder={requestDeleteFolder}
                   onDeleteFile={requestDeleteFile}
+                  onFileClick={handleFileClick}
                   draft={draft}
                   onCancelDraft={() => {
                     setPendingRootFileAfterFolder(false)
@@ -396,7 +402,7 @@ export function SidebarFileTree({
                         projectId,
                         folderId: draft.parentId ?? null,
                         name: trimmed,
-                        content: { text: "" },
+                        content: "",
                       })
                     }
                     setDraft(null)
@@ -643,6 +649,7 @@ function RootList(props: {
   onRenameFile: (f: UIFile) => void
   onDeleteFolder: (f: UIFolder) => void
   onDeleteFile: (f: UIFile) => void
+  onFileClick: (fileId: string) => void
   draft: DraftState
   onCancelDraft: () => void
   onCommitDraft: (name: string) => Promise<void>
@@ -658,6 +665,7 @@ function RootList(props: {
     onRenameFile,
     onDeleteFolder,
     onDeleteFile,
+    onFileClick,
     draft,
     onCancelDraft,
     onCommitDraft,
@@ -681,6 +689,7 @@ function RootList(props: {
           onRenameFile={onRenameFile}
           onDeleteFolder={onDeleteFolder}
           onDeleteFile={onDeleteFile}
+          onFileClick={onFileClick}
           draft={draft}
           onCancelDraft={onCancelDraft}
           onCommitDraft={onCommitDraft}
@@ -707,7 +716,7 @@ function RootList(props: {
             <ContextMenu>
               <ContextMenuTrigger asChild>
                 <div>
-                  <TreeNodeTrigger>
+                  <TreeNodeTrigger onClick={() => onFileClick(file.id)}>
                     <TreeExpander hasChildren={false} />
                     <TreeIcon hasChildren={false} />
                     {renaming?.type === "file" && renaming.id === file.id ? (
@@ -767,6 +776,7 @@ function FolderItem(props: {
   onRenameFile: (f: UIFile) => void
   onDeleteFolder: (f: UIFolder) => void
   onDeleteFile: (f: UIFile) => void
+  onFileClick: (fileId: string) => void
   draft: DraftState
   onCancelDraft: () => void
   onCommitDraft: (name: string) => Promise<void>
@@ -783,6 +793,7 @@ function FolderItem(props: {
     onRenameFile,
     onDeleteFolder,
     onDeleteFile,
+    onFileClick,
     draft,
     onCancelDraft,
     onCommitDraft,
@@ -889,6 +900,7 @@ function FolderItem(props: {
                 onRenameFile={onRenameFile}
                 onDeleteFolder={onDeleteFolder}
                 onDeleteFile={onDeleteFile}
+                onFileClick={onFileClick}
                 draft={draft}
                 onCancelDraft={onCancelDraft}
                 onCommitDraft={onCommitDraft}
@@ -919,7 +931,7 @@ function FolderItem(props: {
                   <ContextMenu>
                     <ContextMenuTrigger asChild>
                       <div>
-                        <TreeNodeTrigger>
+                        <TreeNodeTrigger onClick={() => onFileClick(file.id)}>
                           <TreeExpander hasChildren={false} />
                           <TreeIcon hasChildren={false} />
                           {renaming?.type === "file" &&

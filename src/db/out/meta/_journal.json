@@ -15,6 +15,13 @@
       "when": 1756095433748,
       "tag": "0001_fancy_marvex",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1756356558598,
+      "tag": "0002_white_molecule_man",
+      "breakpoints": true
     }
   ]
 }
