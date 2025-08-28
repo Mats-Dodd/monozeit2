@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vite dev",
     "start": "node .output/server/index.mjs",
-    "build": "pnpm run db:migrate && vite build",
+    "build": "pnpm run migrate && vite build",
     "migrate": "drizzle-kit migrate",
     "generate": "drizzle-kit generate",
     "serve": "vite preview",
