@@ -52,6 +52,7 @@ import {
   RootDropZone,
   DroppableArea,
 } from "@/components/draggable-tree-item"
+import { handleFileClick } from "@/services/tabs"
 
 type FolderNode = UIFolder & {
   childFolders: FolderNode[]
@@ -371,6 +372,7 @@ export function SidebarFileTree({
                   onRenameFile={(f) => handleRename(f, "file")}
                   onDeleteFolder={requestDeleteFolder}
                   onDeleteFile={requestDeleteFile}
+                  onFileClick={handleFileClick}
                   draft={draft}
                   onCancelDraft={() => {
                     setPendingRootFileAfterFolder(false)
@@ -643,6 +645,7 @@ function RootList(props: {
   onRenameFile: (f: UIFile) => void
   onDeleteFolder: (f: UIFolder) => void
   onDeleteFile: (f: UIFile) => void
+  onFileClick: (fileId: string) => void
   draft: DraftState
   onCancelDraft: () => void
   onCommitDraft: (name: string) => Promise<void>
@@ -658,6 +661,7 @@ function RootList(props: {
     onRenameFile,
     onDeleteFolder,
     onDeleteFile,
+    onFileClick,
     draft,
     onCancelDraft,
     onCommitDraft,
@@ -681,6 +685,7 @@ function RootList(props: {
           onRenameFile={onRenameFile}
           onDeleteFolder={onDeleteFolder}
           onDeleteFile={onDeleteFile}
+          onFileClick={onFileClick}
           draft={draft}
           onCancelDraft={onCancelDraft}
           onCommitDraft={onCommitDraft}
@@ -707,7 +712,7 @@ function RootList(props: {
             <ContextMenu>
               <ContextMenuTrigger asChild>
                 <div>
-                  <TreeNodeTrigger>
+                  <TreeNodeTrigger onClick={() => onFileClick(file.id)}>
                     <TreeExpander hasChildren={false} />
                     <TreeIcon hasChildren={false} />
                     {renaming?.type === "file" && renaming.id === file.id ? (
@@ -767,6 +772,7 @@ function FolderItem(props: {
   onRenameFile: (f: UIFile) => void
   onDeleteFolder: (f: UIFolder) => void
   onDeleteFile: (f: UIFile) => void
+  onFileClick: (fileId: string) => void
   draft: DraftState
   onCancelDraft: () => void
   onCommitDraft: (name: string) => Promise<void>
@@ -783,6 +789,7 @@ function FolderItem(props: {
     onRenameFile,
     onDeleteFolder,
     onDeleteFile,
+    onFileClick,
     draft,
     onCancelDraft,
     onCommitDraft,
@@ -889,6 +896,7 @@ function FolderItem(props: {
                 onRenameFile={onRenameFile}
                 onDeleteFolder={onDeleteFolder}
                 onDeleteFile={onDeleteFile}
+                onFileClick={onFileClick}
                 draft={draft}
                 onCancelDraft={onCancelDraft}
                 onCommitDraft={onCommitDraft}
@@ -919,7 +927,7 @@ function FolderItem(props: {
                   <ContextMenu>
                     <ContextMenuTrigger asChild>
                       <div>
-                        <TreeNodeTrigger>
+                        <TreeNodeTrigger onClick={() => onFileClick(file.id)}>
                           <TreeExpander hasChildren={false} />
                           <TreeIcon hasChildren={false} />
                           {renaming?.type === "file" &&
