@@ -1,4 +1,11 @@
-import { pgTable, timestamp, varchar, text, uuid } from "drizzle-orm/pg-core"
+import {
+  pgTable,
+  timestamp,
+  varchar,
+  text,
+  uuid,
+  jsonb,
+} from "drizzle-orm/pg-core"
 import type { AnyPgColumn } from "drizzle-orm/pg-core"
 import { createSchemaFactory } from "drizzle-zod"
 import { z } from "zod"
@@ -44,7 +51,7 @@ export const filesTable = pgTable("files", {
     onDelete: "cascade",
   }),
   name: varchar({ length: 255 }).notNull(),
-  content: text("content").notNull().default(""),
+  content: jsonb("content"),
   created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   updated_at: timestamp({ withTimezone: true })
     .notNull()

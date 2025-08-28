@@ -1,5 +1,5 @@
 {
-  "id": "2f4aa0dd-8121-4be4-a277-f0ee411bddcf",
+  "id": "1fd766fa-05e0-40d5-a8db-b00a8d446f18",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -24,7 +24,7 @@
           "name": "folder_id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "name": {
           "name": "name",
@@ -36,7 +36,7 @@
           "name": "content",
           "type": "jsonb",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
