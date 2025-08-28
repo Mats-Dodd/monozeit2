@@ -4,14 +4,6 @@ import type {
   File as DbFile,
 } from "@/db/schema"
 
-export type JsonValue =
-  | string
-  | number
-  | boolean
-  | null
-  | { [k: string]: JsonValue }
-  | JsonValue[]
-
 type OptionalTimestamps = { created_at?: Date; updated_at?: Date }
 
 export type UIProject = Omit<DbProject, "created_at"> & { created_at?: Date }
@@ -50,10 +42,10 @@ export type FileCreateUI = {
   projectId: string
   folderId?: string | null
   name: string
-  content?: JsonValue
+  content?: string
 }
 export type FileUpdateUIPatch = {
   name?: string
   folderId?: string | null
-  content?: JsonValue
+  content?: string
 }
