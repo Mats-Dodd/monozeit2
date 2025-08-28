@@ -8,7 +8,7 @@ import topLevelAwait from "vite-plugin-top-level-await"
 const config = defineConfig({
   server: {
     host: true,
-    port: 5173,
+    port: 5174,
   },
   plugins: [
     // this is the plugin that enables path aliases

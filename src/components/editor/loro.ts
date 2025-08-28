@@ -19,9 +19,10 @@ export function encodeUint8ToBase64(bytes: Uint8Array): string {
 export function useLoroDocForFile(
   fileId: string,
   base64Content: string | null
-): LoroDoc {
+): { loroDoc: LoroDoc; markSnapshotApplied: (base64: string) => void } {
   const loroDocRef = useRef<LoroDoc | null>(null)
   const lastFileIdRef = useRef<string | null>(null)
+  const lastImportedBase64Ref = useRef<string | null>(null)
 
   if (lastFileIdRef.current !== fileId || !loroDocRef.current) {
     const doc = new LoroDoc()
@@ -29,9 +30,12 @@ export function useLoroDocForFile(
       try {
         const snapshot = decodeBase64ToUint8(base64Content)
         doc.import(snapshot)
+        lastImportedBase64Ref.current = base64Content
       } catch (e) {
         console.warn("Loro import (sync) failed", e)
       }
+    } else {
+      lastImportedBase64Ref.current = null
     }
     loroDocRef.current = doc
     lastFileIdRef.current = fileId
@@ -39,15 +43,21 @@ export function useLoroDocForFile(
 
   useEffect(() => {
     if (!loroDocRef.current || !base64Content) return
+    if (lastImportedBase64Ref.current === base64Content) return
     try {
       const snapshot = decodeBase64ToUint8(base64Content)
       loroDocRef.current.import(snapshot)
+      lastImportedBase64Ref.current = base64Content
     } catch (e) {
       console.warn("Loro import failed", e)
     }
   }, [base64Content])
 
-  return loroDocRef.current!
+  const markSnapshotApplied = (base64: string) => {
+    lastImportedBase64Ref.current = base64
+  }
+
+  return { loroDoc: loroDocRef.current!, markSnapshotApplied }
 }
 
 export function getLoroExtensions(loroDoc: LoroDoc) {
