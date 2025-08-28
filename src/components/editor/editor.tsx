@@ -5,7 +5,7 @@ import { useCurrentFileID } from "@/services/tabs"
 import { eq, useLiveQuery } from "@tanstack/react-db"
 import { fileCollection } from "@/lib/collections"
 import { updateFile } from "@/services/files"
-import { useCallback, useRef } from "react"
+import { useCallback, useEffect, useRef } from "react"
 
 const Tiptap = () => {
   const currentFileID = useCurrentFileID()
@@ -30,23 +30,41 @@ const Tiptap = () => {
 
       saveTimeoutRef.current = setTimeout(() => {
         updateFile({ id: currentFileID, content })
+        console.log("saved")
       }, 500)
     },
     [currentFileID]
   )
 
-  console.log("currentFileData?.content", currentFileData?.content)
   const editor = useEditor(
     {
       extensions,
-      content: currentFileData?.content || "<p>Hello World!</p>",
+      content: currentFileData?.content,
       onUpdate: ({ editor }) => {
         const html = editor.getHTML()
-        debouncedSave(html)
+        if (html !== (currentFileData?.content ?? "")) {
+          debouncedSave(html)
+        }
       },
     },
-    [currentFileID, currentFileData?.content]
+    [currentFileID]
   )
+
+  // Sync external content changes without re-creating the editor or stealing focus
+  useEffect(() => {
+    if (!editor) return
+    const newContent = currentFileData?.content ?? ""
+    const currentHtml = editor.getHTML()
+    if (newContent === currentHtml) return
+
+    const wasFocused = editor.isFocused
+    const { from, to } = editor.state.selection
+    editor.commands.setContent(newContent, { emitUpdate: false })
+    if (wasFocused) {
+      editor.view.focus()
+      editor.commands.setTextSelection({ from, to })
+    }
+  }, [editor, currentFileData?.content])
 
   return (
     <>
