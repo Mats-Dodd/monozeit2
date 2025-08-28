@@ -5,7 +5,6 @@ import type {
   FolderUpdateUIPatch,
   FileCreateUI,
   FileUpdateUIPatch,
-  JsonValue,
 } from "./types"
 
 // Map UI args (camelCase) to DB-shaped payloads (snake_case)
@@ -54,7 +53,7 @@ export function toDbFileCreate(ui: Omit<FileCreateUI, "id"> & { id: string }) {
     project_id: ui.projectId,
     folder_id: ui.folderId ?? null,
     name: ui.name,
-    content: (ui.content ?? { text: "" }) as JsonValue,
+    content: (ui.content ?? { text: "" }) as string,
   }
 }
 
@@ -62,7 +61,7 @@ export function toDbFileUpdate(ui: FileUpdateUIPatch) {
   const result = {
     name: ui.name,
     folder_id: ui.folderId,
-    content: ui.content as JsonValue | undefined,
+    content: ui.content as string | undefined,
   }
   return result
 }

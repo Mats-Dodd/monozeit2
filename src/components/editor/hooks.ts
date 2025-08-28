@@ -3,14 +3,14 @@ import { eq, useLiveQuery } from "@tanstack/react-db"
 import type { useEditor } from "@tiptap/react"
 import { useCallback, useEffect, useRef } from "react"
 
-export function useDebouncedCallback<T extends (...args: unknown[]) => void>(
-  callback: T,
+export function useDebouncedCallback<Args extends unknown[]>(
+  callback: (...args: Args) => void,
   delayMs: number
 ) {
   const timeoutRef = useRef<number | null>(null)
 
   const debounced = useCallback(
-    (...args: Parameters<T>) => {
+    (...args: Args) => {
       if (timeoutRef.current !== null) {
         window.clearTimeout(timeoutRef.current)
       }
@@ -29,7 +29,7 @@ export function useDebouncedCallback<T extends (...args: unknown[]) => void>(
     }
   }, [])
 
-  return debounced as T
+  return debounced
 }
 
 export function useSyncEditorContent(
