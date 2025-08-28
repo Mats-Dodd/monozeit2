@@ -1,13 +1,14 @@
 import {
   createCollection,
   localStorageCollectionOptions,
+  useLiveQuery,
 } from "@tanstack/react-db"
 import { z } from "zod"
 
 export const currentFileCollection = createCollection(
   localStorageCollectionOptions({
     id: "current-file",
-    storageKey: "app-current-file", // localStorage key
+    storageKey: "app-current-file",
     getKey: (item) => item.fileId,
     schema: z.object({
       fileId: z.string(),
@@ -16,7 +17,18 @@ export const currentFileCollection = createCollection(
 )
 
 export const handleFileClick = (fileId: string) => {
-  console.log("handleFileClick", fileId)
+  currentFileCollection.map((item) => {
+    const itemID = item.fileId
+    currentFileCollection.delete(itemID)
+  })
   currentFileCollection.insert({ fileId })
-  console.log("currentFileCollection", currentFileCollection.toArray)
+}
+
+export const useCurrentFileID = () => {
+  const { data: currentFileID } = useLiveQuery((query) =>
+    query
+      .from({ c: currentFileCollection })
+      .select(({ c }) => ({ fileId: c.fileId }))
+  )
+  return currentFileID[0]?.fileId
 }
