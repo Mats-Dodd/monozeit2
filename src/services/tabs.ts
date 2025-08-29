@@ -17,11 +17,19 @@ export const currentFileCollection = createCollection(
 )
 
 export const handleFileClick = (fileId: string) => {
+  setCurrentFile(fileId)
+}
+
+export function setCurrentFile(fileId: string) {
+  clearCurrentFileCollection()
+  currentFileCollection.insert({ fileId })
+}
+
+export function clearCurrentFileCollection() {
   currentFileCollection.map((item) => {
     const itemID = item.fileId
     currentFileCollection.delete(itemID)
   })
-  currentFileCollection.insert({ fileId })
 }
 
 export const useCurrentFileID = () => {
