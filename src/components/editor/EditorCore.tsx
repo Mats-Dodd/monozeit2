@@ -8,7 +8,7 @@ import {
 } from "./hooks"
 import { updateFile } from "@/services/files"
 import { useCallback, useMemo } from "react"
-import { exportLoroSnapshotBase64 } from "./loro"
+import { exportLoroSnapshotBase64 } from "./utils"
 
 export function EditorCore({
   fileId,

@@ -5,7 +5,7 @@ import { LoroSyncPlugin, LoroUndoPlugin } from "loro-prosemirror"
 import type { LoroDocType } from "loro-prosemirror"
 import { Extension } from "@tiptap/core"
 import { LoroDoc } from "loro-crdt"
-import { decodeBase64ToUint8 } from "./loro"
+import { decodeBase64ToUint8 } from "./utils"
 
 export function useDebouncedCallback<Args extends unknown[]>(
   callback: (...args: Args) => void,
