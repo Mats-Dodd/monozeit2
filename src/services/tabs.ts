@@ -1,5 +1,6 @@
 import {
   createCollection,
+  eq,
   localStorageCollectionOptions,
   useLiveQuery,
 } from "@tanstack/react-db"
@@ -12,6 +13,7 @@ export const tabsCollection = createCollection(
     getKey: (item) => item.fileId,
     schema: z.object({
       fileId: z.string(),
+      isActive: z.boolean(),
     }),
   })
 )
@@ -22,7 +24,7 @@ export const handleFileClick = (fileId: string) => {
 
 export function setActiveTabFileID(fileId: string) {
   clearActiveTabFileID()
-  tabsCollection.insert({ fileId })
+  tabsCollection.insert({ fileId, isActive: true })
 }
 
 export function clearActiveTabFileID() {
@@ -34,7 +36,8 @@ export function clearActiveTabFileID() {
 
 export const useActiveTabFileID = () => {
   const { data: activeTabFileID } = useLiveQuery((query) =>
-    query.from({ c: tabsCollection }).select(({ c }) => ({ fileId: c.fileId }))
+    query.from({ c: tabsCollection }).where((refs) => eq(refs.c.isActive, true))
   )
+
   return activeTabFileID[0]?.fileId
 }

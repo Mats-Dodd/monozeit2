@@ -46,6 +46,16 @@ export function useGetCurrentFileContent(currentFileID: string) {
   return currentFile?.[0]?.content
 }
 
+export function useGetCurrentFileName(currentFileID: string) {
+  const { data: currentFile } = useLiveQuery(
+    (q) =>
+      q.from({ c: fileCollection }).where(({ c }) => eq(c.id, currentFileID)),
+    [currentFileID]
+  )
+
+  return currentFile?.[0]?.name
+}
+
 export function getLoroExtensions(loroDoc: LoroDoc) {
   return Extension.create({
     name: "loro",
