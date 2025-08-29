@@ -1,14 +1,10 @@
 import { useEditor, EditorContent } from "@tiptap/react"
 import { FloatingMenu, BubbleMenu } from "@tiptap/react/menus"
 import { extensions as baseExtensions } from "./extensions"
-import { useDebouncedCallback } from "./hooks"
+import { useDebouncedCallback, getLoroExtensions } from "./hooks"
 import { updateFile } from "@/services/files"
 import { useCallback, useMemo } from "react"
-import {
-  getLoroExtensions,
-  exportLoroSnapshotBase64,
-  useLoroDocForFile,
-} from "./loro"
+import { exportLoroSnapshotBase64, useLoroDocForFile } from "./loro"
 
 export function EditorCore({
   fileId,

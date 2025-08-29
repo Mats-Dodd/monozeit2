@@ -1,7 +1,5 @@
 import { useEffect, useRef } from "react"
 import { LoroDoc } from "loro-crdt"
-import { LoroSyncPlugin, LoroUndoPlugin } from "loro-prosemirror"
-import { Extension } from "@tiptap/core"
 
 export function decodeBase64ToUint8(base64: string): Uint8Array {
   const binary = atob(base64)
@@ -58,26 +56,6 @@ export function useLoroDocForFile(
   }
 
   return { loroDoc: loroDocRef.current!, markSnapshotApplied }
-}
-
-export function getLoroExtensions(loroDoc: LoroDoc) {
-  return Extension.create({
-    name: "loro",
-    addProseMirrorPlugins() {
-      return [
-        LoroSyncPlugin({
-          doc: loroDoc as unknown as Parameters<
-            typeof LoroSyncPlugin
-          >[0]["doc"],
-        }),
-        LoroUndoPlugin({
-          doc: loroDoc as unknown as Parameters<
-            typeof LoroUndoPlugin
-          >[0]["doc"],
-        }),
-      ]
-    },
-  })
 }
 
 export function exportLoroSnapshotBase64(loroDoc: LoroDoc): string {

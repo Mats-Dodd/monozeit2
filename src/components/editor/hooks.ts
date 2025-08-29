@@ -1,6 +1,10 @@
 import { fileCollection } from "@/lib/collections"
 import { eq, useLiveQuery } from "@tanstack/react-db"
 import { useCallback, useEffect, useRef } from "react"
+import { LoroSyncPlugin, LoroUndoPlugin } from "loro-prosemirror"
+import type { LoroDocType } from "loro-prosemirror"
+import { Extension } from "@tiptap/core"
+import { LoroDoc } from "loro-crdt"
 
 export function useDebouncedCallback<Args extends unknown[]>(
   callback: (...args: Args) => void,
@@ -39,4 +43,18 @@ export function useGetCurrentFileContent(currentFileID: string) {
   )
 
   return currentFile?.[0]?.content
+}
+
+export function getLoroExtensions(loroDoc: LoroDoc) {
+  return Extension.create({
+    name: "loro",
+    addProseMirrorPlugins() {
+      return [
+        LoroSyncPlugin({
+          doc: loroDoc as LoroDocType,
+        }),
+        LoroUndoPlugin({ doc: loroDoc }),
+      ]
+    },
+  })
 }
