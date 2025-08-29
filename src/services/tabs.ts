@@ -1,10 +1,12 @@
 import {
   createCollection,
   eq,
+  inArray,
   localStorageCollectionOptions,
   useLiveQuery,
 } from "@tanstack/react-db"
 import { z } from "zod"
+import { fileCollection } from "@/lib/collections"
 
 export const tabsCollection = createCollection(
   localStorageCollectionOptions({
@@ -65,4 +67,22 @@ export const useActiveTabFileID = () => {
   )
 
   return activeTabFileID[0]?.fileId
+}
+
+export const useTabs = () => {
+  const { data: tabs } = useLiveQuery((query) =>
+    query.from({ c: tabsCollection })
+  )
+
+  return tabs
+}
+
+export const useTabContent = (fileIds: string[]) => {
+  const { data: tabContent } = useLiveQuery((query) =>
+    query
+      .from({ c: fileCollection })
+      .where((refs) => inArray(refs.c.id, fileIds))
+  )
+
+  return tabContent
 }
