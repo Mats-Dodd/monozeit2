@@ -23,8 +23,29 @@ export const handleFileClick = (fileId: string) => {
 }
 
 export function setActiveTabFileID(fileId: string) {
-  clearActiveTabFileID()
-  tabsCollection.insert({ fileId, isActive: true })
+  if (fileInTabs(fileId)) {
+    console.log("fileInTabs: setting active tab to", fileId)
+    clearActiveTabs()
+    tabsCollection.update(fileId, (draft) => {
+      draft.isActive = true
+    })
+  } else {
+    console.log(
+      "fileNotInTabs: setting others to inactive and inserting new tab"
+    )
+    clearActiveTabs()
+    tabsCollection.insert({ fileId, isActive: true })
+  }
+  // clearActiveTabFileID()
+  // tabsCollection.insert({ fileId, isActive: true })
+}
+
+const clearActiveTabs = () => {
+  tabsCollection.map((item) => {
+    tabsCollection.update(item.fileId, (draft) => {
+      draft.isActive = false
+    })
+  })
 }
 
 export function clearActiveTabFileID() {
@@ -32,6 +53,10 @@ export function clearActiveTabFileID() {
     const itemID = item.fileId
     tabsCollection.delete(itemID)
   })
+}
+
+function fileInTabs(fileId: string) {
+  return tabsCollection.get(fileId)
 }
 
 export const useActiveTabFileID = () => {
