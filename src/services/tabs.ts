@@ -5,10 +5,10 @@ import {
 } from "@tanstack/react-db"
 import { z } from "zod"
 
-export const currentFileCollection = createCollection(
+export const tabsCollection = createCollection(
   localStorageCollectionOptions({
-    id: "current-file",
-    storageKey: "app-current-file",
+    id: "tabs",
+    storageKey: "app-tabs",
     getKey: (item) => item.fileId,
     schema: z.object({
       fileId: z.string(),
@@ -17,26 +17,24 @@ export const currentFileCollection = createCollection(
 )
 
 export const handleFileClick = (fileId: string) => {
-  setCurrentFile(fileId)
+  setActiveTabFileID(fileId)
 }
 
-export function setCurrentFile(fileId: string) {
-  clearCurrentFileCollection()
-  currentFileCollection.insert({ fileId })
+export function setActiveTabFileID(fileId: string) {
+  clearActiveTabFileID()
+  tabsCollection.insert({ fileId })
 }
 
-export function clearCurrentFileCollection() {
-  currentFileCollection.map((item) => {
+export function clearActiveTabFileID() {
+  tabsCollection.map((item) => {
     const itemID = item.fileId
-    currentFileCollection.delete(itemID)
+    tabsCollection.delete(itemID)
   })
 }
 
-export const useCurrentFileID = () => {
-  const { data: currentFileID } = useLiveQuery((query) =>
-    query
-      .from({ c: currentFileCollection })
-      .select(({ c }) => ({ fileId: c.fileId }))
+export const useActiveTabFileID = () => {
+  const { data: activeTabFileID } = useLiveQuery((query) =>
+    query.from({ c: tabsCollection }).select(({ c }) => ({ fileId: c.fileId }))
   )
-  return currentFileID[0]?.fileId
+  return activeTabFileID[0]?.fileId
 }
