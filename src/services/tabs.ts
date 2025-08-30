@@ -27,20 +27,14 @@ export const handleFileClick = (fileId: string) => {
 
 export function setActiveTabFileID(fileId: string) {
   if (fileInTabs(fileId)) {
-    console.log("fileInTabs: setting active tab to", fileId)
     clearActiveTabs()
     tabsCollection.update(fileId, (draft) => {
       draft.isActive = true
     })
   } else {
-    console.log(
-      "fileNotInTabs: setting others to inactive and inserting new tab"
-    )
     clearActiveTabs()
     tabsCollection.insert({ fileId, isActive: true })
   }
-  // clearActiveTabFileID()
-  // tabsCollection.insert({ fileId, isActive: true })
 }
 
 const clearActiveTabs = () => {

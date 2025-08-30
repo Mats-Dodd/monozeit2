@@ -24,7 +24,6 @@ export function AppTabs({ showClearButton = false }: AppTabsProps) {
 
   const handleCloseTab = (fileId: string, event: React.MouseEvent) => {
     event.stopPropagation()
-    console.log("closing tab", fileId)
     closeTab(fileId)
   }
 
@@ -32,11 +31,6 @@ export function AppTabs({ showClearButton = false }: AppTabsProps) {
   if (tabs.tabs.length === 0) {
     return null
   }
-
-  console.log(
-    "tabs",
-    tabs.tabs.map((tab) => tab.fileId)
-  )
 
   return (
     <div className="flex items-center gap-4">
@@ -49,14 +43,20 @@ export function AppTabs({ showClearButton = false }: AppTabsProps) {
               className="group relative pr-6"
             >
               <span>{tab.name}</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="absolute right-0 h-4 w-4 p-0 opacity-0 group-hover:opacity-100 hover:bg-destructive hover:text-destructive-foreground"
+              <span
+                className="absolute right-0 h-4 w-4 p-0 opacity-0 group-hover:opacity-100 hover:bg-destructive hover:text-destructive-foreground cursor-pointer inline-flex items-center justify-center rounded-sm transition-colors"
                 onClick={(e) => handleCloseTab(tab.id, e)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault()
+                    handleCloseTab(tab.id, e as unknown as React.MouseEvent)
+                  }
+                }}
               >
                 <X className="h-3 w-3" />
-              </Button>
+              </span>
             </TabsTrigger>
           ))}
         </TabsList>
