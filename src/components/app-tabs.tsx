@@ -3,7 +3,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   clearActiveTabFileID,
   setActiveTabFileID,
-  useTabs,
+  useTabItems,
   useCloseTab,
 } from "@/services/tabs"
 import { X } from "lucide-react"
@@ -13,8 +13,7 @@ interface AppTabsProps {
 }
 
 export function AppTabs({ showClearButton = false }: AppTabsProps) {
-  const tabs = useTabs()
-  const activeTab = tabs.tabs.find((tab) => tab.isActive)
+  const { items, activeId } = useTabItems()
 
   const closeTab = useCloseTab()
 
@@ -28,15 +27,15 @@ export function AppTabs({ showClearButton = false }: AppTabsProps) {
   }
 
   // Don't render if no tabs
-  if (tabs.tabs.length === 0) {
+  if (items.length === 0) {
     return null
   }
 
   return (
     <div className="flex items-center gap-4">
-      <Tabs value={activeTab?.fileId} onValueChange={handleTabChange}>
+      <Tabs value={activeId} onValueChange={handleTabChange}>
         <TabsList>
-          {tabs.tabContent.map((tab) => (
+          {items.map((tab) => (
             <TabsTrigger
               key={tab.id}
               value={tab.id}
