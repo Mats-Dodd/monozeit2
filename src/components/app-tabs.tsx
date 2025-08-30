@@ -1,24 +1,33 @@
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
-  clearActiveTabFileID,
+  clearTabsForProject,
   setActiveTabFileID,
   useTabItems,
   useCloseTab,
 } from "@/services/tabs"
 import { X } from "lucide-react"
+import { useMatch } from "@tanstack/react-router"
 
 interface AppTabsProps {
   showClearButton?: boolean
 }
 
 export function AppTabs({ showClearButton = false }: AppTabsProps) {
-  const { items, activeId } = useTabItems()
+  const match = useMatch({
+    from: "/_authenticated/project/$projectId",
+    shouldThrow: false,
+  })
+  const projectId = (match?.params as { projectId?: string } | undefined)
+    ?.projectId
 
-  const closeTab = useCloseTab()
+  const { items, activeId } = useTabItems(projectId)
+
+  const closeTab = useCloseTab(projectId)
 
   const handleTabChange = (fileId: string) => {
-    setActiveTabFileID(fileId)
+    if (!projectId) return
+    setActiveTabFileID(projectId, fileId)
   }
 
   const handleCloseTab = (fileId: string, event: React.MouseEvent) => {
@@ -60,11 +69,11 @@ export function AppTabs({ showClearButton = false }: AppTabsProps) {
           ))}
         </TabsList>
       </Tabs>
-      {showClearButton && (
+      {showClearButton && projectId && (
         <Button
           variant="outline"
           size="sm"
-          onClick={() => clearActiveTabFileID()}
+          onClick={() => clearTabsForProject(projectId)}
         >
           Clear Tabs
         </Button>

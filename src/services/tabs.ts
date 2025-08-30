@@ -2,6 +2,7 @@ import {
   createCollection,
   eq,
   inArray,
+  and,
   localStorageCollectionOptions,
   useLiveQuery,
 } from "@tanstack/react-db"
@@ -18,43 +19,49 @@ export type TabItem = {
 export const tabsCollection = createCollection(
   localStorageCollectionOptions({
     id: "tabs",
-    storageKey: "app-tabs",
+    storageKey: "app-tabs-v2",
     getKey: (item) => item.fileId,
     schema: z.object({
+      projectId: z.string(),
       fileId: z.string(),
       isActive: z.boolean(),
     }),
   })
 )
 
-export const handleFileClick = (fileId: string) => {
-  setActiveTabFileID(fileId)
+export const handleFileClick = (projectId: string, fileId: string) => {
+  setActiveTabFileID(projectId, fileId)
 }
 
-export function setActiveTabFileID(fileId: string) {
+export function setActiveTabFileID(projectId: string, fileId: string) {
   if (fileInTabs(fileId)) {
-    clearActiveTabs()
+    clearActiveTabs(projectId)
     tabsCollection.update(fileId, (draft) => {
       draft.isActive = true
+      draft.projectId = projectId
     })
   } else {
-    clearActiveTabs()
-    tabsCollection.insert({ fileId, isActive: true })
+    clearActiveTabs(projectId)
+    tabsCollection.insert({ projectId, fileId, isActive: true })
   }
 }
 
-const clearActiveTabs = () => {
+const clearActiveTabs = (projectId: string) => {
   tabsCollection.map((item) => {
-    tabsCollection.update(item.fileId, (draft) => {
-      draft.isActive = false
-    })
+    if (item.projectId === projectId) {
+      tabsCollection.update(item.fileId, (draft) => {
+        draft.isActive = false
+      })
+    }
   })
 }
 
-export function clearActiveTabFileID() {
+export function clearTabsForProject(projectId: string) {
   tabsCollection.map((item) => {
-    const itemID = item.fileId
-    tabsCollection.delete(itemID)
+    if (item.projectId === projectId) {
+      const itemID = item.fileId
+      tabsCollection.delete(itemID)
+    }
   })
 }
 
@@ -62,17 +69,27 @@ function fileInTabs(fileId: string) {
   return tabsCollection.get(fileId)
 }
 
-export const useActiveTabFileID = () => {
-  const { data: activeTabFileID } = useLiveQuery((query) =>
-    query.from({ c: tabsCollection }).where((refs) => eq(refs.c.isActive, true))
+export const useActiveTabFileID = (projectId: string | undefined) => {
+  const { data: activeTabFileID = [] } = useLiveQuery(
+    (query) =>
+      query
+        .from({ c: tabsCollection })
+        .where((refs) =>
+          and(eq(refs.c.isActive, true), eq(refs.c.projectId, projectId ?? ""))
+        ),
+    [projectId]
   )
 
   return activeTabFileID[0]?.fileId
 }
 
-export const useTabItems = () => {
-  const { data: tabs = [] } = useLiveQuery((query) =>
-    query.from({ c: tabsCollection })
+export const useTabItems = (projectId: string | undefined) => {
+  const { data: tabs = [] } = useLiveQuery(
+    (query) =>
+      query
+        .from({ c: tabsCollection })
+        .where((refs) => eq(refs.c.projectId, projectId ?? "")),
+    [projectId]
   )
 
   const fileIds = useMemo(() => tabs.map((tab) => tab.fileId), [tabs])
@@ -108,15 +125,16 @@ export const useTabItems = () => {
   return { items, activeId }
 }
 
-export const useCloseTab = () => {
+export const useCloseTab = (projectId: string | undefined) => {
   return (fileId: string) => {
     const currentTab = tabsCollection.get(fileId)
-    const wasActive = currentTab?.isActive
+    const wasActive =
+      currentTab?.isActive === true && currentTab?.projectId === projectId
 
-    // Get remaining tabs BEFORE deleting the current one
+    // Get remaining tabs for the same project BEFORE deleting the current one
     const remainingTabs: Array<{ fileId: string; isActive: boolean }> = []
     tabsCollection.map((tab) => {
-      if (tab.fileId !== fileId) {
+      if (tab.fileId !== fileId && tab.projectId === projectId) {
         remainingTabs.push(tab)
       }
     })
