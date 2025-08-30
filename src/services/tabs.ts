@@ -7,6 +7,7 @@ import {
 } from "@tanstack/react-db"
 import { z } from "zod"
 import { fileCollection } from "@/lib/collections"
+import { useMemo } from "react"
 
 export const tabsCollection = createCollection(
   localStorageCollectionOptions({
@@ -70,19 +71,57 @@ export const useActiveTabFileID = () => {
 }
 
 export const useTabs = () => {
-  const { data: tabs } = useLiveQuery((query) =>
+  const { data: tabs = [] } = useLiveQuery((query) =>
     query.from({ c: tabsCollection })
   )
 
-  return tabs
-}
+  const fileIds = useMemo(() => tabs.map((tab) => tab.fileId), [tabs])
 
-export const useTabContent = (fileIds: string[]) => {
-  const { data: tabContent } = useLiveQuery((query) =>
-    query
-      .from({ c: fileCollection })
-      .where((refs) => inArray(refs.c.id, fileIds))
+  const { data: rawTabContent = [] } = useLiveQuery(
+    (query) =>
+      query
+        .from({ c: fileCollection })
+        .where((refs) => inArray(refs.c.id, fileIds)),
+    [fileIds]
   )
 
-  return tabContent
+  const idToFile = useMemo(() => {
+    return new Map(rawTabContent.map((f) => [f.id, f] as const))
+  }, [rawTabContent])
+
+  const tabContent = useMemo(
+    () =>
+      fileIds
+        .map((id) => idToFile.get(id))
+        .filter((f): f is (typeof rawTabContent)[number] => Boolean(f)),
+    [fileIds, idToFile]
+  )
+
+  return { tabs, tabContent }
+}
+
+export const useCloseTab = () => {
+  return (fileId: string) => {
+    const currentTab = tabsCollection.get(fileId)
+    const wasActive = currentTab?.isActive
+
+    // Get remaining tabs BEFORE deleting the current one
+    const remainingTabs: Array<{ fileId: string; isActive: boolean }> = []
+    tabsCollection.map((tab) => {
+      if (tab.fileId !== fileId) {
+        remainingTabs.push(tab)
+      }
+    })
+
+    // Remove the tab
+    tabsCollection.delete(fileId)
+
+    // If the closed tab was active, set another tab as active
+    if (wasActive && remainingTabs.length > 0) {
+      // Set the first remaining tab as active
+      tabsCollection.update(remainingTabs[0].fileId, (draft) => {
+        draft.isActive = true
+      })
+    }
+  }
 }
