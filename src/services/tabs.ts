@@ -108,44 +108,6 @@ export const useTabItems = () => {
   return { items, activeId }
 }
 
-export const useActiveTabItem = () => {
-  const { items } = useTabItems()
-  return items.find((i) => i.isActive)
-}
-
-/**
- * @deprecated Use useTabItems instead
- */
-export const useTabs = () => {
-  const { data: tabs = [] } = useLiveQuery((query) =>
-    query.from({ c: tabsCollection })
-  )
-
-  const fileIds = useMemo(() => tabs.map((tab) => tab.fileId), [tabs])
-
-  const { data: rawTabContent = [] } = useLiveQuery(
-    (query) =>
-      query
-        .from({ c: fileCollection })
-        .where((refs) => inArray(refs.c.id, fileIds)),
-    [fileIds]
-  )
-
-  const idToFile = useMemo(() => {
-    return new Map(rawTabContent.map((f) => [f.id, f] as const))
-  }, [rawTabContent])
-
-  const tabContent = useMemo(
-    () =>
-      fileIds
-        .map((id) => idToFile.get(id))
-        .filter((f): f is (typeof rawTabContent)[number] => Boolean(f)),
-    [fileIds, idToFile]
-  )
-
-  return { tabs, tabContent }
-}
-
 export const useCloseTab = () => {
   return (fileId: string) => {
     const currentTab = tabsCollection.get(fileId)
