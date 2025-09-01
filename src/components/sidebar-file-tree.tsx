@@ -384,7 +384,9 @@ export function SidebarFileTree({
                   onRenameFile={(f) => handleRename(f, "file")}
                   onDeleteFolder={requestDeleteFolder}
                   onDeleteFile={requestDeleteFile}
-                  onFileClick={handleFileClick}
+                  onFileClick={(fileId) =>
+                    projectId ? handleFileClick(projectId, fileId) : undefined
+                  }
                   draft={draft}
                   onCancelDraft={() => {
                     setPendingRootFileAfterFolder(false)
@@ -413,7 +415,7 @@ export function SidebarFileTree({
                         content: getEmptyLoroDoc(),
                       })
                       // Select the newly created file
-                      handleFileClick(newFileId)
+                      if (projectId) handleFileClick(projectId, newFileId)
                     }
                     setDraft(null)
                   }}
