@@ -4,11 +4,7 @@ import { Outlet } from "@tanstack/react-router"
 import { authClient } from "@/lib/auth-client"
 import { useLiveQuery } from "@tanstack/react-db"
 import { projectCollection } from "@/lib/collections"
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar"
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
 import { createProject } from "@/services/projects"
 import type { ProjectCreateUI } from "@/services/types"
@@ -26,7 +22,6 @@ function AuthenticatedLayout() {
     q.from({ projectCollection })
   )
 
-  // Create an initial default project if the user doesn't yet have any.
   useEffect(() => {
     if (session && projects && !isLoading) {
       const hasProject = projects.length > 0
@@ -48,8 +43,6 @@ function AuthenticatedLayout() {
     navigate({ to: "/login" })
   }
 
-  // Inline project creation moved into AppSidebar dialog
-
   if (isPending) {
     return null
   }
@@ -65,16 +58,7 @@ function AuthenticatedLayout() {
         projects={projects}
         handleLogout={handleLogout}
       />
-
       <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-          <SidebarTrigger className="-ml-1" />
-          <div className="flex flex-1 items-center gap-2 text-sm">
-            <span className="font-semibold">
-              TanStack DB / Electric Starter
-            </span>
-          </div>
-        </header>
         <main className="flex-1">
           <Outlet />
         </main>
