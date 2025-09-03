@@ -10,7 +10,7 @@ import { XIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { PaneId, WorkbenchState, WorkbenchTab } from "./types"
 import { getDragData, setDragData } from "./dnd"
-import { useCurrentFileID } from "@/services/tabs"
+import { useCurrentFileID, clearCurrentFile } from "@/services/tabs"
 import { fileCollection } from "@/lib/collections"
 import { eq, useLiveQuery } from "@tanstack/react-db"
 
@@ -145,6 +145,7 @@ export function WorkbenchPanes({
               setState={setState}
               renderContent={renderContent}
               onFocusPane={(id) => (lastActivePaneRef.current = id)}
+              currentFileId={currentFileId}
             />
           </ResizablePanel>
           <ResizableHandle withHandle />
@@ -155,6 +156,7 @@ export function WorkbenchPanes({
               setState={setState}
               renderContent={renderContent}
               onFocusPane={(id) => (lastActivePaneRef.current = id)}
+              currentFileId={currentFileId}
             />
           </ResizablePanel>
         </ResizablePanelGroup>
@@ -166,6 +168,7 @@ export function WorkbenchPanes({
             setState={setState}
             renderContent={renderContent}
             onFocusPane={(id) => (lastActivePaneRef.current = id)}
+            currentFileId={currentFileId}
           />
         </div>
       ) : rightHasTabs ? (
@@ -176,6 +179,7 @@ export function WorkbenchPanes({
             setState={setState}
             renderContent={renderContent}
             onFocusPane={(id) => (lastActivePaneRef.current = id)}
+            currentFileId={currentFileId}
           />
         </div>
       ) : (
@@ -227,12 +231,14 @@ function PaneView({
   setState,
   renderContent,
   onFocusPane,
+  currentFileId,
 }: {
   paneId: PaneId
   state: WorkbenchState
   setState: React.Dispatch<React.SetStateAction<WorkbenchState>>
   renderContent: (tab: WorkbenchTab) => React.ReactNode
   onFocusPane: (paneId: PaneId) => void
+  currentFileId: string | undefined
 }) {
   const pane = state.panes[paneId]
   const activeTabId = pane.activeTabId ?? pane.tabs[0]?.id
@@ -249,21 +255,40 @@ function PaneView({
   )
 
   const closeTab = useCallback(
-    (tabId: string) =>
+    (tabId: string) => {
+      let shouldClear = false
       setState((prev) => {
         const tabs = prev.panes[paneId].tabs.filter((t) => t.id !== tabId)
         const nextActive =
           prev.panes[paneId].activeTabId === tabId
             ? tabs[0]?.id
             : prev.panes[paneId].activeTabId
-        return {
+        const next: WorkbenchState = {
           panes: {
             ...prev.panes,
             [paneId]: { tabs, activeTabId: nextActive },
           },
         }
-      }),
-    [paneId, setState]
+        const removed = prev.panes[paneId].tabs.find((t) => t.id === tabId)
+        const removedFileId = removed?.fileId
+        if (removedFileId) {
+          const stillOpen =
+            (paneId === "left"
+              ? next.panes.right.tabs
+              : next.panes.left.tabs
+            ).some((t) => t.fileId === removedFileId) ||
+            next.panes[paneId].tabs.some((t) => t.fileId === removedFileId)
+          if (!stillOpen && currentFileId === removedFileId) {
+            shouldClear = true
+          }
+        }
+        return next
+      })
+      if (shouldClear) {
+        setTimeout(() => clearCurrentFile(), 0)
+      }
+    },
+    [paneId, setState, currentFileId]
   )
 
   const onDragStartTab = useCallback(
