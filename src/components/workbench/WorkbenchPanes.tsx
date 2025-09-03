@@ -1,18 +1,19 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useRef } from "react"
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable"
-import { XIcon } from "lucide-react"
-import { cn } from "@/lib/utils"
 import type { PaneId, WorkbenchState, WorkbenchTab } from "./types"
-import { getDragData, setDragData } from "./dnd"
-import { useCurrentFileID, clearCurrentFile } from "@/services/tabs"
+import { useCurrentFileID } from "@/services/tabs"
 import { fileCollection } from "@/lib/collections"
 import { eq, useLiveQuery } from "@tanstack/react-db"
+import WorkbenchPane from "./WorkbenchPane"
+import EmptyPane from "./EmptyPane"
+import { useWorkbenchPersistedState } from "./hooks/useWorkbenchPersistedState"
+import { usePaneSizes } from "./hooks/usePaneSizes"
 
 type WorkbenchPanesProps = {
   projectId: string
@@ -23,7 +24,7 @@ export function WorkbenchPanes({
   projectId,
   renderContent,
 }: WorkbenchPanesProps) {
-  const [state, setState] = usePersistedState(projectId)
+  const [state, setState] = useWorkbenchPersistedState(projectId)
   const lastActivePaneRef = useRef<PaneId>("left")
 
   // Observe sidebar selection and open/focus in the last active pane
@@ -111,25 +112,7 @@ export function WorkbenchPanes({
     })
   }, [currentFileId, currentFileName, setState])
 
-  const handleSizeChange = useCallback(
-    (sizes: number[]) => {
-      try {
-        localStorage.setItem(sizeKey(projectId), JSON.stringify(sizes))
-      } catch {
-        // ignore
-      }
-    },
-    [projectId]
-  )
-
-  const defaultSizes = useMemo(() => {
-    try {
-      const raw = localStorage.getItem(sizeKey(projectId))
-      return raw ? (JSON.parse(raw) as number[]) : [60, 40]
-    } catch {
-      return [60, 40]
-    }
-  }, [projectId])
+  const { defaultSizes, handleSizeChange } = usePaneSizes(projectId)
 
   const leftHasTabs = state.panes.left.tabs.length > 0
   const rightHasTabs = state.panes.right.tabs.length > 0
@@ -139,7 +122,7 @@ export function WorkbenchPanes({
       {leftHasTabs && rightHasTabs ? (
         <ResizablePanelGroup direction="horizontal" onLayout={handleSizeChange}>
           <ResizablePanel minSize={20} defaultSize={defaultSizes[0]}>
-            <PaneView
+            <WorkbenchPane
               paneId="left"
               state={state}
               setState={setState}
@@ -150,7 +133,7 @@ export function WorkbenchPanes({
           </ResizablePanel>
           <ResizableHandle withHandle />
           <ResizablePanel minSize={20} defaultSize={defaultSizes[1]}>
-            <PaneView
+            <WorkbenchPane
               paneId="right"
               state={state}
               setState={setState}
@@ -162,7 +145,7 @@ export function WorkbenchPanes({
         </ResizablePanelGroup>
       ) : leftHasTabs ? (
         <div className="h-full w-full">
-          <PaneView
+          <WorkbenchPane
             paneId="left"
             state={state}
             setState={setState}
@@ -173,7 +156,7 @@ export function WorkbenchPanes({
         </div>
       ) : rightHasTabs ? (
         <div className="h-full w-full">
-          <PaneView
+          <WorkbenchPane
             paneId="right"
             state={state}
             setState={setState}
@@ -185,386 +168,6 @@ export function WorkbenchPanes({
       ) : (
         <EmptyPane />
       )}
-    </div>
-  )
-}
-
-function sizeKey(projectId: string) {
-  return `workbench:sizes:${projectId}`
-}
-
-function stateKey(projectId: string) {
-  return `workbench:state:${projectId}`
-}
-
-function usePersistedState(projectId: string) {
-  const [state, setState] = useState<WorkbenchState>(() => {
-    try {
-      const raw = localStorage.getItem(stateKey(projectId))
-      if (raw) return JSON.parse(raw) as WorkbenchState
-    } catch {
-      // ignore
-    }
-    return {
-      panes: {
-        left: { tabs: [], activeTabId: undefined },
-        right: { tabs: [], activeTabId: undefined },
-      },
-    }
-  })
-
-  // persist
-  useEffect(() => {
-    try {
-      localStorage.setItem(stateKey(projectId), JSON.stringify(state))
-    } catch {
-      // ignore
-    }
-  }, [projectId, state])
-
-  return [state, setState] as const
-}
-
-function PaneView({
-  paneId,
-  state,
-  setState,
-  renderContent,
-  onFocusPane,
-  currentFileId,
-}: {
-  paneId: PaneId
-  state: WorkbenchState
-  setState: React.Dispatch<React.SetStateAction<WorkbenchState>>
-  renderContent: (tab: WorkbenchTab) => React.ReactNode
-  onFocusPane: (paneId: PaneId) => void
-  currentFileId: string | undefined
-}) {
-  const pane = state.panes[paneId]
-  const activeTabId = pane.activeTabId ?? pane.tabs[0]?.id
-  const [isCrossPaneDragOver, setIsCrossPaneDragOver] = useState(false)
-
-  const getCrossIntent = useCallback(
-    (e: React.DragEvent): boolean => {
-      const hasTab = e.dataTransfer.types.includes(
-        "application/x-workbench-tab"
-      )
-      const hasFile = e.dataTransfer.types.includes("application/x-stones-file")
-      if (!hasTab && !hasFile) return false
-      const bounds = (e.currentTarget as HTMLElement).getBoundingClientRect()
-      const relativeX = e.clientX - bounds.left
-      const overRightHalf = relativeX > bounds.width * 0.5
-      const overLeftHalf = relativeX < bounds.width * 0.5
-      const wantsOther = paneId === "left" ? overRightHalf : overLeftHalf
-      return wantsOther
-    },
-    [paneId]
-  )
-
-  const setActive = useCallback(
-    (id: string) =>
-      setState((prev) => ({
-        panes: {
-          ...prev.panes,
-          [paneId]: { ...prev.panes[paneId], activeTabId: id },
-        },
-      })),
-    [paneId, setState]
-  )
-
-  const closeTab = useCallback(
-    (tabId: string) => {
-      let shouldClear = false
-      setState((prev) => {
-        const tabs = prev.panes[paneId].tabs.filter((t) => t.id !== tabId)
-        const nextActive =
-          prev.panes[paneId].activeTabId === tabId
-            ? tabs[0]?.id
-            : prev.panes[paneId].activeTabId
-        const next: WorkbenchState = {
-          panes: {
-            ...prev.panes,
-            [paneId]: { tabs, activeTabId: nextActive },
-          },
-        }
-        const removed = prev.panes[paneId].tabs.find((t) => t.id === tabId)
-        const removedFileId = removed?.fileId
-        if (removedFileId) {
-          const stillOpen =
-            (paneId === "left"
-              ? next.panes.right.tabs
-              : next.panes.left.tabs
-            ).some((t) => t.fileId === removedFileId) ||
-            next.panes[paneId].tabs.some((t) => t.fileId === removedFileId)
-          if (!stillOpen && currentFileId === removedFileId) {
-            shouldClear = true
-          }
-        }
-        return next
-      })
-      if (shouldClear) {
-        setTimeout(() => clearCurrentFile(), 0)
-      }
-    },
-    [paneId, setState, currentFileId]
-  )
-
-  const onDragStartTab = useCallback(
-    (e: React.DragEvent, tabId: string) => {
-      setDragData(e, "tab", { tabId, fromPaneId: paneId })
-    },
-    [paneId]
-  )
-
-  const onDropOnList = useCallback(
-    (e: React.DragEvent, targetIndex?: number, forceToOtherPane?: boolean) => {
-      e.preventDefault()
-      let destinationPaneId: PaneId = paneId
-      if (forceToOtherPane || getCrossIntent(e)) {
-        destinationPaneId = paneId === "left" ? "right" : "left"
-      }
-      // console.log drop diagnostics if needed
-      // Move tab
-      const tabPayload = getDragData<{ tabId: string; fromPaneId: PaneId }>(
-        e,
-        "tab"
-      )
-      if (tabPayload?.tabId) {
-        const { tabId, fromPaneId } = tabPayload
-        if (fromPaneId === destinationPaneId) {
-          // Reorder within the same pane
-          setState((prev) => {
-            const arr = [...prev.panes[destinationPaneId].tabs]
-            const fromIndex = arr.findIndex((t) => t.id === tabId)
-            if (fromIndex === -1) return prev
-            const [moving] = arr.splice(fromIndex, 1)
-            let insertAt: number
-            if (typeof targetIndex === "number") {
-              insertAt = targetIndex > fromIndex ? targetIndex - 1 : targetIndex
-            } else {
-              // No explicit target index → drop at end
-              insertAt = arr.length
-            }
-            if (insertAt === fromIndex) return prev
-            arr.splice(insertAt, 0, moving)
-            console.log("reorder", {
-              paneId: destinationPaneId,
-              fromIndex,
-              insertAt,
-              targetIndex,
-            })
-            return {
-              panes: {
-                ...prev.panes,
-                [destinationPaneId]: { tabs: arr, activeTabId: moving.id },
-              },
-            }
-          })
-        } else {
-          // Move across panes
-          setState((prev) => {
-            const source = prev.panes[fromPaneId]
-            const moving = source.tabs.find((t) => t.id === tabId)
-            if (!moving) return prev
-            const sourceTabs = source.tabs.filter((t) => t.id !== tabId)
-            const destTabs = [...prev.panes[destinationPaneId].tabs]
-            // Avoid duplicates if somehow present
-            if (destTabs.some((t) => t.id === tabId)) return prev
-            const insertAt =
-              typeof targetIndex === "number" ? targetIndex : destTabs.length
-            destTabs.splice(insertAt, 0, moving)
-            // console.log cross-pane move
-            const next: WorkbenchState = {
-              panes: {
-                ...prev.panes,
-                [fromPaneId]: {
-                  tabs: sourceTabs,
-                  activeTabId:
-                    prev.panes[fromPaneId].activeTabId === moving.id
-                      ? sourceTabs[0]?.id
-                      : prev.panes[fromPaneId].activeTabId,
-                },
-                [destinationPaneId]: {
-                  tabs: destTabs,
-                  activeTabId: moving.id,
-                },
-              },
-            }
-            return next
-          })
-        }
-        return
-      }
-
-      // Open external file payloads (future)
-      const filePayload = getDragData<{ fileId: string; title: string }>(
-        e,
-        "file"
-      )
-      if (filePayload) {
-        const { fileId, title } = filePayload
-        const newTab: WorkbenchTab = { id: `file:${fileId}`, title, fileId }
-        setState((prev) => {
-          const exists = prev.panes[paneId].tabs.find((t) => t.id === newTab.id)
-          const destTabs = exists
-            ? prev.panes[paneId].tabs
-            : [...prev.panes[paneId].tabs, newTab]
-          return {
-            panes: {
-              ...prev.panes,
-              [paneId]: { tabs: destTabs, activeTabId: newTab.id },
-            },
-          }
-        })
-      }
-    },
-    [paneId, setState]
-  )
-
-  const allowDrop = useCallback((e: React.DragEvent) => {
-    const hasTab = e.dataTransfer.types.includes("application/x-workbench-tab")
-    const hasFile = e.dataTransfer.types.includes("application/x-stones-file")
-    if (hasTab || hasFile) {
-      e.preventDefault()
-    }
-  }, [])
-
-  const handleDragOverPane = useCallback(
-    (e: React.DragEvent) => {
-      const crossIntent = getCrossIntent(e)
-      setIsCrossPaneDragOver(crossIntent)
-    },
-    [getCrossIntent]
-  )
-
-  // const onReorder = useCallback(
-  //   (fromIndex: number, toIndex: number) => {
-  //     setState((prev) => {
-  //       const arr = [...prev.panes[paneId].tabs]
-  //       const [item] = arr.splice(fromIndex, 1)
-  //       arr.splice(toIndex, 0, item)
-  //       return { panes: { ...prev.panes, [paneId]: { ...prev.panes[paneId], tabs: arr } } }
-  //     })
-  //   },
-  //   [paneId, setState]
-  // )
-
-  return (
-    <div className="relative flex h-full w-full flex-col overflow-hidden">
-      <div
-        className="flex h-9 items-center gap-1 border-b px-1"
-        onDragOver={(e) => {
-          allowDrop(e)
-          handleDragOverPane(e)
-        }}
-        onDrop={(e) => onDropOnList(e)}
-        onMouseDown={() => onFocusPane(paneId)}
-        onDragLeave={() => setIsCrossPaneDragOver(false)}
-      >
-        {pane.tabs.map((tab, index) => (
-          <TabChip
-            key={tab.id}
-            tab={tab}
-            active={activeTabId === tab.id}
-            onActivate={() => {
-              onFocusPane(paneId)
-              setActive(tab.id)
-            }}
-            onClose={() => closeTab(tab.id)}
-            onDragStart={(e) => onDragStartTab(e, tab.id)}
-            onDropBefore={(e) => onDropOnList(e, index)}
-            onDropAfter={(e) => onDropOnList(e, index + 1)}
-          />
-        ))}
-      </div>
-      <div
-        className="flex-1 overflow-auto"
-        onDragOver={(e) => {
-          allowDrop(e)
-          handleDragOverPane(e)
-        }}
-        onDragLeave={() => setIsCrossPaneDragOver(false)}
-        onDrop={(e) => {
-          onDropOnList(e, undefined, isCrossPaneDragOver)
-          setIsCrossPaneDragOver(false)
-        }}
-      >
-        {(() => {
-          const tab = pane.tabs.find((t) => t.id === activeTabId)
-          return tab ? renderContent(tab) : <EmptyPane />
-        })()}
-      </div>
-      {isCrossPaneDragOver ? (
-        <div
-          className={cn(
-            "pointer-events-none absolute inset-y-0",
-            paneId === "left" ? "right-0" : "left-0"
-          )}
-        >
-          <div className="w-0.5 h-full bg-primary/60" />
-        </div>
-      ) : null}
-    </div>
-  )
-}
-
-function TabChip({
-  tab,
-  active,
-  onActivate,
-  onClose,
-  onDragStart,
-  onDropBefore,
-  onDropAfter,
-}: {
-  tab: WorkbenchTab
-  active: boolean
-  onActivate: () => void
-  onClose: () => void
-  onDragStart: (e: React.DragEvent) => void
-  onDropBefore: (e: React.DragEvent) => void
-  onDropAfter: (e: React.DragEvent) => void
-}) {
-  return (
-    <div
-      className={cn(
-        "inline-flex select-none items-center gap-1 rounded-md px-2 text-sm h-7",
-        active ? "bg-accent text-accent-foreground" : "hover:bg-muted"
-      )}
-      draggable
-      onDragStart={onDragStart}
-      onClick={onActivate}
-      onDragOver={(e) => {
-        if (
-          e.dataTransfer.types.includes("application/x-workbench-tab") ||
-          e.dataTransfer.types.includes("application/x-stones-file")
-        ) {
-          e.preventDefault()
-        }
-      }}
-    >
-      <div onDrop={onDropBefore} className="h-5 w-1" />
-      <span className="truncate max-w-[180px]">{tab.title}</span>
-      <button
-        className="ml-1 rounded-sm hover:bg-muted/70"
-        onMouseDown={(e) => e.stopPropagation()}
-        onClick={(e) => {
-          e.stopPropagation()
-          onClose()
-        }}
-        aria-label={`Close ${tab.title}`}
-      >
-        <XIcon className="size-3.5" />
-      </button>
-      <div onDrop={onDropAfter} className="h-5 w-1" />
-    </div>
-  )
-}
-
-function EmptyPane() {
-  return (
-    <div className="h-full w-full grid place-items-center text-sm text-muted-foreground">
-      Drop a file or tab here
     </div>
   )
 }
