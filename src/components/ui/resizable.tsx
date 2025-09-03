@@ -37,14 +37,14 @@ function ResizableHandle({
     <ResizablePrimitive.PanelResizeHandle
       data-slot="resizable-handle"
       className={cn(
-        "relative z-10 flex w-1 items-center justify-center after:absolute after:inset-y-0 after:left-1/2 after:w-px after:bg-border/50 after:-translate-x-1/2 focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-1 data-[panel-group-direction=vertical]:h-1 data-[panel-group-direction=vertical]:w-full data-[panel-group-direction=vertical]:after:left-0 data-[panel-group-direction=vertical]:after:h-px data-[panel-group-direction=vertical]:after:w-full data-[panel-group-direction=vertical]:after:translate-x-0 data-[panel-group-direction=vertical]:after:-translate-y-1/2 [&[data-panel-group-direction=vertical]>div]:rotate-90 hover:bg-muted/30",
+        "relative z-10 flex w-1 items-center justify-center after:absolute after:inset-y-0 after:left-1/2 after:w-px after:bg-border/40 after:-translate-x-1/2 focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring/70 focus-visible:ring-offset-1 data-[panel-group-direction=vertical]:h-1 data-[panel-group-direction=vertical]:w-full data-[panel-group-direction=vertical]:after:left-0 data-[panel-group-direction=vertical]:after:h-px data-[panel-group-direction=vertical]:after:w-full data-[panel-group-direction=vertical]:after:translate-x-0 data-[panel-group-direction=vertical]:after:-translate-y-1/2 [&[data-panel-group-direction=vertical]>div]:rotate-90 hover:bg-muted/20",
         className
       )}
       {...props}
     >
       {withHandle && (
-        <div className="z-10 grid h-4 w-3 place-items-center rounded-xs border border-border/60 bg-background shadow-sm">
-          <GripVerticalIcon className="size-2.5 text-muted-foreground/80" />
+        <div className="z-10 grid h-4 w-3 place-items-center rounded-xs border border-border/40 bg-background shadow-sm">
+          <GripVerticalIcon className="size-2.5 text-muted-foreground/70" />
         </div>
       )}
     </ResizablePrimitive.PanelResizeHandle>
