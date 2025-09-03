@@ -176,7 +176,7 @@ code {
 
   /* TipTap content theming */
   .tiptap {
-    @apply px-4 py-3 text-[13px] leading-6;
+    @apply px-6 md:px-8 py-4 text-[13px] leading-6 max-w-[80ch] mx-auto;
   }
   .tiptap p {
     margin: 0.25rem 0;
@@ -188,7 +188,7 @@ code {
     @apply text-lg font-semibold mt-3 mb-2;
   }
   .tiptap pre {
-    @apply bg-muted rounded-md p-3 overflow-auto text-[12px];
+    @apply bg-muted rounded-md p-3 overflow-auto text-[12px] max-w-full;
   }
   .tiptap code {
     @apply bg-muted rounded px-1 py-0.5;
