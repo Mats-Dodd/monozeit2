@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router"
-import Tiptap from "@/components/editor/editor"
+import WorkbenchPanes from "@/components/workbench/WorkbenchPanes"
+import { EditorCore } from "@/components/editor/EditorCore"
 
 export const Route = createFileRoute("/_authenticated/project/$projectId")({
   component: ProjectPage,
@@ -7,9 +8,18 @@ export const Route = createFileRoute("/_authenticated/project/$projectId")({
 })
 
 function ProjectPage() {
+  const params = Route.useParams()
+  const projectId = params.projectId
   return (
-    <div className="p-6">
-      <Tiptap />
+    <div className="h-full">
+      <WorkbenchPanes
+        projectId={projectId}
+        renderContent={(tab) =>
+          tab.fileId ? (
+            <EditorCore fileId={tab.fileId} base64Content={null} />
+          ) : null
+        }
+      />
     </div>
   )
 }
