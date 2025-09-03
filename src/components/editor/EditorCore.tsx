@@ -47,8 +47,8 @@ export function EditorCore({
   )
 
   return (
-    <div className="h-full w-full">
-      <div className="h-full thin-scrollbar">
+    <div className="h-full min-h-0 w-full">
+      <div className="h-full min-h-0 overflow-auto thin-scrollbar">
         <EditorContent editor={editor} className="tiptap" />
       </div>
       <FloatingMenu editor={editor}>This is the floating menu</FloatingMenu>

@@ -118,7 +118,7 @@ export function WorkbenchPanes({
   const rightHasTabs = state.panes.right.tabs.length > 0
 
   return (
-    <div className="h-full w-full p-2 md:p-2">
+    <div className="h-full min-h-0 w-full">
       {leftHasTabs && rightHasTabs ? (
         <ResizablePanelGroup direction="horizontal" onLayout={handleSizeChange}>
           <ResizablePanel minSize={20} defaultSize={defaultSizes[0]}>

@@ -63,7 +63,9 @@ function AuthenticatedLayout() {
       />
 
       <SidebarInset>
-        <Outlet />
+        <div className="h-full min-h-0 flex-1">
+          <Outlet />
+        </div>
       </SidebarInset>
     </SidebarProvider>
   )
