@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   ResizableHandle,
   ResizablePanel,
@@ -10,6 +10,9 @@ import { XIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { PaneId, WorkbenchState, WorkbenchTab } from "./types"
 import { getDragData, setDragData } from "./dnd"
+import { useCurrentFileID } from "@/services/tabs"
+import { fileCollection } from "@/lib/collections"
+import { eq, useLiveQuery } from "@tanstack/react-db"
 
 type WorkbenchPanesProps = {
   projectId: string
@@ -21,6 +24,95 @@ export function WorkbenchPanes({
   renderContent,
 }: WorkbenchPanesProps) {
   const [state, setState] = usePersistedState(projectId)
+  const lastActivePaneRef = useRef<PaneId>("left")
+
+  // Observe sidebar selection and open/focus in the last active pane
+  const currentFileId = useCurrentFileID()
+  const { data: fileRows = [] } = currentFileId
+    ? useLiveQuery(
+        (q) =>
+          q
+            .from({ c: fileCollection })
+            .where(({ c }) => eq(c.id, currentFileId)),
+        [currentFileId]
+      )
+    : { data: [] }
+  const currentFileName = fileRows?.[0]?.name as string | undefined
+
+  useEffect(() => {
+    if (!currentFileId) return
+    const tabId = `file:${currentFileId}`
+    const title = currentFileName ?? currentFileId
+
+    setState((prev) => {
+      let titleChanged = false
+
+      const updateTitles = (tabs: WorkbenchTab[]) =>
+        tabs.map((t) => {
+          if (
+            t.id === tabId &&
+            currentFileName &&
+            t.title !== currentFileName
+          ) {
+            titleChanged = true
+            return { ...t, title: currentFileName }
+          }
+          return t
+        })
+
+      const leftTabs = updateTitles(prev.panes.left.tabs)
+      const rightTabs = updateTitles(prev.panes.right.tabs)
+
+      const leftHas = leftTabs.some((t) => t.id === tabId)
+      const rightHas = rightTabs.some((t) => t.id === tabId)
+
+      if (leftHas || rightHas) {
+        const focusPane: PaneId = leftHas ? "left" : "right"
+        const next: WorkbenchState = {
+          panes: {
+            left: {
+              tabs: leftTabs,
+              activeTabId:
+                focusPane === "left" ? tabId : prev.panes.left.activeTabId,
+            },
+            right: {
+              tabs: rightTabs,
+              activeTabId:
+                focusPane === "right" ? tabId : prev.panes.right.activeTabId,
+            },
+          },
+        }
+        if (
+          (focusPane === "left" && prev.panes.left.activeTabId !== tabId) ||
+          (focusPane === "right" && prev.panes.right.activeTabId !== tabId) ||
+          titleChanged
+        ) {
+          lastActivePaneRef.current = focusPane
+          return next
+        }
+        return prev
+      }
+
+      const target = lastActivePaneRef.current
+      const newTab: WorkbenchTab = { id: tabId, title, fileId: currentFileId }
+      const next: WorkbenchState = {
+        panes: {
+          left: {
+            tabs: target === "left" ? [...leftTabs, newTab] : leftTabs,
+            activeTabId:
+              target === "left" ? newTab.id : prev.panes.left.activeTabId,
+          },
+          right: {
+            tabs: target === "right" ? [...rightTabs, newTab] : rightTabs,
+            activeTabId:
+              target === "right" ? newTab.id : prev.panes.right.activeTabId,
+          },
+        },
+      }
+      lastActivePaneRef.current = target
+      return next
+    })
+  }, [currentFileId, currentFileName, setState])
 
   const handleSizeChange = useCallback(
     (sizes: number[]) => {
@@ -51,6 +143,7 @@ export function WorkbenchPanes({
             state={state}
             setState={setState}
             renderContent={renderContent}
+            onFocusPane={(id) => (lastActivePaneRef.current = id)}
           />
         </ResizablePanel>
         <ResizableHandle withHandle />
@@ -60,6 +153,7 @@ export function WorkbenchPanes({
             state={state}
             setState={setState}
             renderContent={renderContent}
+            onFocusPane={(id) => (lastActivePaneRef.current = id)}
           />
         </ResizablePanel>
       </ResizablePanelGroup>
@@ -108,11 +202,13 @@ function PaneView({
   state,
   setState,
   renderContent,
+  onFocusPane,
 }: {
   paneId: PaneId
   state: WorkbenchState
   setState: React.Dispatch<React.SetStateAction<WorkbenchState>>
   renderContent: (tab: WorkbenchTab) => React.ReactNode
+  onFocusPane: (paneId: PaneId) => void
 }) {
   const pane = state.panes[paneId]
   const activeTabId = pane.activeTabId ?? pane.tabs[0]?.id
@@ -248,13 +344,17 @@ function PaneView({
         className="flex h-9 items-center gap-1 border-b px-1"
         onDragOver={allowDrop}
         onDrop={(e) => onDropOnList(e)}
+        onMouseDown={() => onFocusPane(paneId)}
       >
         {pane.tabs.map((tab, index) => (
           <TabChip
             key={tab.id}
             tab={tab}
             active={activeTabId === tab.id}
-            onActivate={() => setActive(tab.id)}
+            onActivate={() => {
+              onFocusPane(paneId)
+              setActive(tab.id)
+            }}
             onClose={() => closeTab(tab.id)}
             onDragStart={(e) => onDragStartTab(e, tab.id)}
             onDropBefore={(e) => onDropOnList(e, index)}
