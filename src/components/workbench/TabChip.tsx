@@ -23,8 +23,10 @@ export default function TabChip({
   return (
     <div
       className={cn(
-        "inline-flex select-none items-center gap-1 rounded-md px-2 text-sm h-7",
-        active ? "bg-accent text-accent-foreground" : "hover:bg-muted"
+        "group/tab inline-flex h-7 select-none items-center gap-1.5 rounded-md px-2 text-[13px] leading-none",
+        active
+          ? "bg-muted text-foreground shadow-[inset_0_-1px_0_0_rgba(0,0,0,0.06)]"
+          : "hover:bg-muted/70 text-muted-foreground"
       )}
       draggable
       onDragStart={onDragStart}
@@ -38,10 +40,17 @@ export default function TabChip({
         }
       }}
     >
-      <div onDrop={onDropBefore} className="h-5 w-1" />
-      <span className="truncate max-w-[180px]">{tab.title}</span>
+      <div onDrop={onDropBefore} className="h-5 w-px" />
+      <span
+        className={cn("truncate max-w-[200px]", active ? "font-medium" : "")}
+      >
+        {tab.title}
+      </span>
       <button
-        className="ml-1 rounded-sm hover:bg-muted/70"
+        className={cn(
+          "ml-1 grid size-5 place-items-center rounded-sm",
+          active ? "bg-transparent" : "opacity-0 group-hover/tab:opacity-100"
+        )}
         onMouseDown={(e) => e.stopPropagation()}
         onClick={(e) => {
           e.stopPropagation()
@@ -49,9 +58,9 @@ export default function TabChip({
         }}
         aria-label={`Close ${tab.title}`}
       >
-        <XIcon className="size-3.5" />
+        <XIcon className="size-3.5 text-muted-foreground" />
       </button>
-      <div onDrop={onDropAfter} className="h-5 w-1" />
+      <div onDrop={onDropAfter} className="h-5 w-px" />
     </div>
   )
 }

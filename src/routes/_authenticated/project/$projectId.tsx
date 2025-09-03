@@ -12,7 +12,7 @@ function ProjectPage() {
   const params = Route.useParams()
   const projectId = params.projectId
   return (
-    <div className="h-full">
+    <div className="h-full min-h-0">
       <WorkbenchPanes
         projectId={projectId}
         renderContent={(tab) =>

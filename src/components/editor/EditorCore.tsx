@@ -47,10 +47,12 @@ export function EditorCore({
   )
 
   return (
-    <>
-      <EditorContent editor={editor} />
+    <div className="h-full min-h-0 w-full">
+      <div className="h-full min-h-0 overflow-auto thin-scrollbar">
+        <EditorContent editor={editor} className="tiptap" />
+      </div>
       <FloatingMenu editor={editor}>This is the floating menu</FloatingMenu>
       <BubbleMenu editor={editor}>This is the bubble menu</BubbleMenu>
-    </>
+    </div>
   )
 }
