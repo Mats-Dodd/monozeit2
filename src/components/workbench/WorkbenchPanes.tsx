@@ -242,6 +242,24 @@ function PaneView({
 }) {
   const pane = state.panes[paneId]
   const activeTabId = pane.activeTabId ?? pane.tabs[0]?.id
+  const [isCrossPaneDragOver, setIsCrossPaneDragOver] = useState(false)
+
+  const getCrossIntent = useCallback(
+    (e: React.DragEvent): boolean => {
+      const hasTab = e.dataTransfer.types.includes(
+        "application/x-workbench-tab"
+      )
+      const hasFile = e.dataTransfer.types.includes("application/x-stones-file")
+      if (!hasTab && !hasFile) return false
+      const bounds = (e.currentTarget as HTMLElement).getBoundingClientRect()
+      const relativeX = e.clientX - bounds.left
+      const overRightHalf = relativeX > bounds.width * 0.5
+      const overLeftHalf = relativeX < bounds.width * 0.5
+      const wantsOther = paneId === "left" ? overRightHalf : overLeftHalf
+      return wantsOther
+    },
+    [paneId]
+  )
 
   const setActive = useCallback(
     (id: string) =>
@@ -293,14 +311,25 @@ function PaneView({
 
   const onDragStartTab = useCallback(
     (e: React.DragEvent, tabId: string) => {
+      console.log("tab drag start", { paneId, tabId })
       setDragData(e, "tab", { tabId, fromPaneId: paneId })
     },
     [paneId]
   )
 
   const onDropOnList = useCallback(
-    (e: React.DragEvent, targetIndex?: number) => {
+    (e: React.DragEvent, targetIndex?: number, forceToOtherPane?: boolean) => {
       e.preventDefault()
+      let destinationPaneId: PaneId = paneId
+      if (forceToOtherPane || getCrossIntent(e)) {
+        destinationPaneId = paneId === "left" ? "right" : "left"
+      }
+      console.log("drop on pane", {
+        paneId,
+        destinationPaneId,
+        targetIndex,
+        types: Array.from(e.dataTransfer.types),
+      })
       // Move tab
       const tabPayload = getDragData<{ tabId: string; fromPaneId: PaneId }>(
         e,
@@ -308,35 +337,71 @@ function PaneView({
       )
       if (tabPayload?.tabId) {
         const { tabId, fromPaneId } = tabPayload
-        setState((prev) => {
-          const source = prev.panes[fromPaneId]
-          const moving = source.tabs.find((t) => t.id === tabId)
-          if (!moving) return prev
-
-          const sourceTabs = source.tabs.filter((t) => t.id !== tabId)
-          const destTabs = [...prev.panes[paneId].tabs]
-          const insertAt =
-            typeof targetIndex === "number" ? targetIndex : destTabs.length
-          destTabs.splice(insertAt, 0, moving)
-
-          const next: WorkbenchState = {
-            panes: {
-              ...prev.panes,
-              [fromPaneId]: {
-                tabs: sourceTabs,
-                activeTabId:
-                  prev.panes[fromPaneId].activeTabId === moving.id
-                    ? sourceTabs[0]?.id
-                    : prev.panes[fromPaneId].activeTabId,
-              },
-              [paneId]: {
-                tabs: destTabs,
-                activeTabId: moving.id,
-              },
-            },
-          }
-          return next
+        console.log("tab drop payload", {
+          tabId,
+          fromPaneId,
+          toPaneId: destinationPaneId,
         })
+        if (fromPaneId === destinationPaneId) {
+          // Reorder within the same pane
+          setState((prev) => {
+            const arr = [...prev.panes[destinationPaneId].tabs]
+            const fromIndex = arr.findIndex((t) => t.id === tabId)
+            if (fromIndex === -1) return prev
+            const [moving] = arr.splice(fromIndex, 1)
+            const rawInsert =
+              typeof targetIndex === "number" ? targetIndex : arr.length
+            const insertAt = rawInsert > fromIndex ? rawInsert - 1 : rawInsert
+            arr.splice(insertAt, 0, moving)
+            console.log("reordered within pane", {
+              paneId: destinationPaneId,
+              fromIndex,
+              insertAt,
+            })
+            return {
+              panes: {
+                ...prev.panes,
+                [destinationPaneId]: { tabs: arr, activeTabId: moving.id },
+              },
+            }
+          })
+        } else {
+          // Move across panes
+          setState((prev) => {
+            const source = prev.panes[fromPaneId]
+            const moving = source.tabs.find((t) => t.id === tabId)
+            if (!moving) return prev
+            const sourceTabs = source.tabs.filter((t) => t.id !== tabId)
+            const destTabs = [...prev.panes[destinationPaneId].tabs]
+            // Avoid duplicates if somehow present
+            if (destTabs.some((t) => t.id === tabId)) return prev
+            const insertAt =
+              typeof targetIndex === "number" ? targetIndex : destTabs.length
+            destTabs.splice(insertAt, 0, moving)
+            console.log("moved across panes", {
+              fromPaneId,
+              toPaneId: destinationPaneId,
+              insertAt,
+            })
+            const next: WorkbenchState = {
+              panes: {
+                ...prev.panes,
+                [fromPaneId]: {
+                  tabs: sourceTabs,
+                  activeTabId:
+                    prev.panes[fromPaneId].activeTabId === moving.id
+                      ? sourceTabs[0]?.id
+                      : prev.panes[fromPaneId].activeTabId,
+                },
+                [destinationPaneId]: {
+                  tabs: destTabs,
+                  activeTabId: moving.id,
+                },
+              },
+            }
+            return next
+          })
+        }
         return
       }
 
@@ -366,13 +431,29 @@ function PaneView({
   )
 
   const allowDrop = useCallback((e: React.DragEvent) => {
-    if (
-      e.dataTransfer.types.includes("application/x-workbench-tab") ||
-      e.dataTransfer.types.includes("application/x-stones-file")
-    ) {
+    const hasTab = e.dataTransfer.types.includes("application/x-workbench-tab")
+    const hasFile = e.dataTransfer.types.includes("application/x-stones-file")
+    if (hasTab || hasFile) {
+      console.log("allowDrop: preventDefault", { paneId, hasTab, hasFile })
       e.preventDefault()
     }
   }, [])
+
+  const handleDragOverPane = useCallback(
+    (e: React.DragEvent) => {
+      const crossIntent = getCrossIntent(e)
+      const bounds = (e.currentTarget as HTMLElement).getBoundingClientRect()
+      console.log("drag over pane", {
+        paneId,
+        types: Array.from(e.dataTransfer.types),
+        cross: crossIntent,
+        relativeX: e.clientX - bounds.left,
+        width: bounds.width,
+      })
+      setIsCrossPaneDragOver(crossIntent)
+    },
+    [getCrossIntent, paneId]
+  )
 
   // const onReorder = useCallback(
   //   (fromIndex: number, toIndex: number) => {
@@ -387,12 +468,16 @@ function PaneView({
   // )
 
   return (
-    <div className="flex h-full w-full flex-col overflow-hidden">
+    <div className="relative flex h-full w-full flex-col overflow-hidden">
       <div
         className="flex h-9 items-center gap-1 border-b px-1"
-        onDragOver={allowDrop}
+        onDragOver={(e) => {
+          allowDrop(e)
+          handleDragOverPane(e)
+        }}
         onDrop={(e) => onDropOnList(e)}
         onMouseDown={() => onFocusPane(paneId)}
+        onDragLeave={() => setIsCrossPaneDragOver(false)}
       >
         {pane.tabs.map((tab, index) => (
           <TabChip
@@ -410,12 +495,33 @@ function PaneView({
           />
         ))}
       </div>
-      <div className="flex-1 overflow-auto">
+      <div
+        className="flex-1 overflow-auto"
+        onDragOver={(e) => {
+          allowDrop(e)
+          handleDragOverPane(e)
+        }}
+        onDragLeave={() => setIsCrossPaneDragOver(false)}
+        onDrop={(e) => {
+          onDropOnList(e, undefined, isCrossPaneDragOver)
+          setIsCrossPaneDragOver(false)
+        }}
+      >
         {(() => {
           const tab = pane.tabs.find((t) => t.id === activeTabId)
           return tab ? renderContent(tab) : <EmptyPane />
         })()}
       </div>
+      {isCrossPaneDragOver ? (
+        <div
+          className={cn(
+            "pointer-events-none absolute inset-y-0",
+            paneId === "left" ? "right-0" : "left-0"
+          )}
+        >
+          <div className="w-0.5 h-full bg-primary/60" />
+        </div>
+      ) : null}
     </div>
   )
 }
