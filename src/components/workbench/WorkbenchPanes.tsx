@@ -28,15 +28,12 @@ export function WorkbenchPanes({
 
   // Observe sidebar selection and open/focus in the last active pane
   const currentFileId = useCurrentFileID()
-  const { data: fileRows = [] } = currentFileId
-    ? useLiveQuery(
-        (q) =>
-          q
-            .from({ c: fileCollection })
-            .where(({ c }) => eq(c.id, currentFileId)),
-        [currentFileId]
-      )
-    : { data: [] }
+  const fileIdForQuery = currentFileId ?? "__none__"
+  const { data: fileRows = [] } = useLiveQuery(
+    (q) =>
+      q.from({ c: fileCollection }).where(({ c }) => eq(c.id, fileIdForQuery)),
+    [fileIdForQuery]
+  )
   const currentFileName = fileRows?.[0]?.name as string | undefined
 
   useEffect(() => {
@@ -134,10 +131,35 @@ export function WorkbenchPanes({
     }
   }, [projectId])
 
+  const leftHasTabs = state.panes.left.tabs.length > 0
+  const rightHasTabs = state.panes.right.tabs.length > 0
+
   return (
     <div className="h-full w-full">
-      <ResizablePanelGroup direction="horizontal" onLayout={handleSizeChange}>
-        <ResizablePanel minSize={20} defaultSize={defaultSizes[0]}>
+      {leftHasTabs && rightHasTabs ? (
+        <ResizablePanelGroup direction="horizontal" onLayout={handleSizeChange}>
+          <ResizablePanel minSize={20} defaultSize={defaultSizes[0]}>
+            <PaneView
+              paneId="left"
+              state={state}
+              setState={setState}
+              renderContent={renderContent}
+              onFocusPane={(id) => (lastActivePaneRef.current = id)}
+            />
+          </ResizablePanel>
+          <ResizableHandle withHandle />
+          <ResizablePanel minSize={20} defaultSize={defaultSizes[1]}>
+            <PaneView
+              paneId="right"
+              state={state}
+              setState={setState}
+              renderContent={renderContent}
+              onFocusPane={(id) => (lastActivePaneRef.current = id)}
+            />
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      ) : leftHasTabs ? (
+        <div className="h-full w-full">
           <PaneView
             paneId="left"
             state={state}
@@ -145,9 +167,9 @@ export function WorkbenchPanes({
             renderContent={renderContent}
             onFocusPane={(id) => (lastActivePaneRef.current = id)}
           />
-        </ResizablePanel>
-        <ResizableHandle withHandle />
-        <ResizablePanel minSize={20} defaultSize={defaultSizes[1]}>
+        </div>
+      ) : rightHasTabs ? (
+        <div className="h-full w-full">
           <PaneView
             paneId="right"
             state={state}
@@ -155,8 +177,10 @@ export function WorkbenchPanes({
             renderContent={renderContent}
             onFocusPane={(id) => (lastActivePaneRef.current = id)}
           />
-        </ResizablePanel>
-      </ResizablePanelGroup>
+        </div>
+      ) : (
+        <EmptyPane />
+      )}
     </div>
   )
 }
