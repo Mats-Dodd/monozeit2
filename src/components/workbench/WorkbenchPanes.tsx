@@ -311,7 +311,6 @@ function PaneView({
 
   const onDragStartTab = useCallback(
     (e: React.DragEvent, tabId: string) => {
-      console.log("tab drag start", { paneId, tabId })
       setDragData(e, "tab", { tabId, fromPaneId: paneId })
     },
     [paneId]
@@ -324,12 +323,7 @@ function PaneView({
       if (forceToOtherPane || getCrossIntent(e)) {
         destinationPaneId = paneId === "left" ? "right" : "left"
       }
-      console.log("drop on pane", {
-        paneId,
-        destinationPaneId,
-        targetIndex,
-        types: Array.from(e.dataTransfer.types),
-      })
+      // console.log drop diagnostics if needed
       // Move tab
       const tabPayload = getDragData<{ tabId: string; fromPaneId: PaneId }>(
         e,
@@ -337,11 +331,6 @@ function PaneView({
       )
       if (tabPayload?.tabId) {
         const { tabId, fromPaneId } = tabPayload
-        console.log("tab drop payload", {
-          tabId,
-          fromPaneId,
-          toPaneId: destinationPaneId,
-        })
         if (fromPaneId === destinationPaneId) {
           // Reorder within the same pane
           setState((prev) => {
@@ -349,14 +338,20 @@ function PaneView({
             const fromIndex = arr.findIndex((t) => t.id === tabId)
             if (fromIndex === -1) return prev
             const [moving] = arr.splice(fromIndex, 1)
-            const rawInsert =
-              typeof targetIndex === "number" ? targetIndex : arr.length
-            const insertAt = rawInsert > fromIndex ? rawInsert - 1 : rawInsert
+            let insertAt: number
+            if (typeof targetIndex === "number") {
+              insertAt = targetIndex > fromIndex ? targetIndex - 1 : targetIndex
+            } else {
+              // No explicit target index → drop at end
+              insertAt = arr.length
+            }
+            if (insertAt === fromIndex) return prev
             arr.splice(insertAt, 0, moving)
-            console.log("reordered within pane", {
+            console.log("reorder", {
               paneId: destinationPaneId,
               fromIndex,
               insertAt,
+              targetIndex,
             })
             return {
               panes: {
@@ -378,11 +373,7 @@ function PaneView({
             const insertAt =
               typeof targetIndex === "number" ? targetIndex : destTabs.length
             destTabs.splice(insertAt, 0, moving)
-            console.log("moved across panes", {
-              fromPaneId,
-              toPaneId: destinationPaneId,
-              insertAt,
-            })
+            // console.log cross-pane move
             const next: WorkbenchState = {
               panes: {
                 ...prev.panes,
@@ -434,7 +425,6 @@ function PaneView({
     const hasTab = e.dataTransfer.types.includes("application/x-workbench-tab")
     const hasFile = e.dataTransfer.types.includes("application/x-stones-file")
     if (hasTab || hasFile) {
-      console.log("allowDrop: preventDefault", { paneId, hasTab, hasFile })
       e.preventDefault()
     }
   }, [])
@@ -442,17 +432,9 @@ function PaneView({
   const handleDragOverPane = useCallback(
     (e: React.DragEvent) => {
       const crossIntent = getCrossIntent(e)
-      const bounds = (e.currentTarget as HTMLElement).getBoundingClientRect()
-      console.log("drag over pane", {
-        paneId,
-        types: Array.from(e.dataTransfer.types),
-        cross: crossIntent,
-        relativeX: e.clientX - bounds.left,
-        width: bounds.width,
-      })
       setIsCrossPaneDragOver(crossIntent)
     },
-    [getCrossIntent, paneId]
+    [getCrossIntent]
   )
 
   // const onReorder = useCallback(
