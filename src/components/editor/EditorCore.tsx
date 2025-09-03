@@ -1,5 +1,4 @@
 import { useEditor, EditorContent } from "@tiptap/react"
-import { FloatingMenu, BubbleMenu } from "@tiptap/react/menus"
 import { extensions as baseExtensions } from "./extensions"
 import {
   useDebouncedCallback,
@@ -51,8 +50,6 @@ export function EditorCore({
       <div className="h-full min-h-0 overflow-auto thin-scrollbar">
         <EditorContent editor={editor} className="tiptap" />
       </div>
-      <FloatingMenu editor={editor}>This is the floating menu</FloatingMenu>
-      <BubbleMenu editor={editor}>This is the bubble menu</BubbleMenu>
     </div>
   )
 }
