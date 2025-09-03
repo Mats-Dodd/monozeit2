@@ -24,6 +24,13 @@ export const handleFileClick = (fileId: string) => {
   currentFileCollection.insert({ fileId })
 }
 
+export const clearCurrentFile = () => {
+  currentFileCollection.map((item) => {
+    const itemID = item.fileId
+    currentFileCollection.delete(itemID)
+  })
+}
+
 export const useCurrentFileID = () => {
   const { data: currentFileID } = useLiveQuery((query) =>
     query
