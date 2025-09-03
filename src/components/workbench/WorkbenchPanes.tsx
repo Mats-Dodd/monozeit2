@@ -276,8 +276,7 @@ function PaneView({
               [fromPaneId]: {
                 tabs: sourceTabs,
                 activeTabId:
-                  fromPaneId === paneId &&
-                  prev.panes[paneId].activeTabId === moving.id
+                  prev.panes[fromPaneId].activeTabId === moving.id
                     ? sourceTabs[0]?.id
                     : prev.panes[fromPaneId].activeTabId,
               },
@@ -363,11 +362,10 @@ function PaneView({
         ))}
       </div>
       <div className="flex-1 overflow-auto">
-        {activeTabId ? (
-          renderContent(pane.tabs.find((t) => t.id === activeTabId)!)
-        ) : (
-          <EmptyPane />
-        )}
+        {(() => {
+          const tab = pane.tabs.find((t) => t.id === activeTabId)
+          return tab ? renderContent(tab) : <EmptyPane />
+        })()}
       </div>
     </div>
   )
