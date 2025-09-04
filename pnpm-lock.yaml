@@ -131,6 +131,9 @@ importers:
       '@tiptap/core':
         specifier: ^3.3.0
         version: 3.3.0(@tiptap/pm@3.3.0)
+      '@tiptap/extension-details':
+        specifier: ^3.4.0
+        version: 3.4.0(@tiptap/core@3.3.0(@tiptap/pm@3.3.0))(@tiptap/extension-text-style@3.4.0(@tiptap/core@3.3.0(@tiptap/pm@3.3.0)))(@tiptap/pm@3.3.0)
       '@tiptap/pm':
         specifier: ^3.3.0
         version: 3.3.0
@@ -2783,6 +2786,13 @@ packages:
     peerDependencies:
       '@tiptap/core': ^3.3.0
 
+  '@tiptap/extension-details@3.4.0':
+    resolution: {integrity: sha512-YyGHS6eazLL8glnZP2wwjVzpEweoXPaR018Ewle8n3/M+DEd9YZjb+BLC5AtRxZqR+h2mn2TYnNDDcJzqqlUGg==}
+    peerDependencies:
+      '@tiptap/core': ^3.4.0
+      '@tiptap/extension-text-style': ^3.4.0
+      '@tiptap/pm': ^3.4.0
+
   '@tiptap/extension-document@3.3.0':
     resolution: {integrity: sha512-J7w2pva06OSBoEUxIyL/faXx+P97H3L0Q8tCsH5umXgUVew2xLYq6nEDqtHOFIXRp/bvrQd677UlQorBaRrWeQ==}
     peerDependencies:
@@ -2862,6 +2872,11 @@ packages:
     resolution: {integrity: sha512-qTSywaQYtlVo3B2NaLSKgmh5/O5m4XspSME8mekinGH6cTv3d+H3p1SUhQoc1Ue+65CI01+GsLU4v/Gi4B2xNw==}
     peerDependencies:
       '@tiptap/core': ^3.3.0
+
+  '@tiptap/extension-text-style@3.4.0':
+    resolution: {integrity: sha512-xW/xOXDjt+yFI1n0F3XSaKfMg7zElj0HP1M/SvAZwIJlEy51CcD6QQec63DPuak1LzrR+gCv+1GdMwYl/nNg5Q==}
+    peerDependencies:
+      '@tiptap/core': ^3.4.0
 
   '@tiptap/extension-text@3.3.0':
     resolution: {integrity: sha512-yhNpKfRlZsZFtjBQyiWyjg9WPUTzjgxR/ZID1UEY3SGo9aPUuvAvEnn2v2tSopHyf+qBMyN5IfSjrauauGkWMA==}
@@ -9154,6 +9169,12 @@ snapshots:
     dependencies:
       '@tiptap/core': 3.3.0(@tiptap/pm@3.3.0)
 
+  '@tiptap/extension-details@3.4.0(@tiptap/core@3.3.0(@tiptap/pm@3.3.0))(@tiptap/extension-text-style@3.4.0(@tiptap/core@3.3.0(@tiptap/pm@3.3.0)))(@tiptap/pm@3.3.0)':
+    dependencies:
+      '@tiptap/core': 3.3.0(@tiptap/pm@3.3.0)
+      '@tiptap/extension-text-style': 3.4.0(@tiptap/core@3.3.0(@tiptap/pm@3.3.0))
+      '@tiptap/pm': 3.3.0
+
   '@tiptap/extension-document@3.3.0(@tiptap/core@3.3.0(@tiptap/pm@3.3.0))':
     dependencies:
       '@tiptap/core': 3.3.0(@tiptap/pm@3.3.0)
@@ -9218,6 +9239,10 @@ snapshots:
       '@tiptap/core': 3.3.0(@tiptap/pm@3.3.0)
 
   '@tiptap/extension-strike@3.3.0(@tiptap/core@3.3.0(@tiptap/pm@3.3.0))':
+    dependencies:
+      '@tiptap/core': 3.3.0(@tiptap/pm@3.3.0)
+
+  '@tiptap/extension-text-style@3.4.0(@tiptap/core@3.3.0(@tiptap/pm@3.3.0))':
     dependencies:
       '@tiptap/core': 3.3.0(@tiptap/pm@3.3.0)
 
