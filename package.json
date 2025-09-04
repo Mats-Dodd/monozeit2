@@ -59,6 +59,7 @@
     "@tanstack/router-plugin": "^1.130.2",
     "@tiptap/core": "^3.3.0",
     "@tiptap/extension-details": "^3.4.0",
+    "@tiptap/extension-emoji": "^3.4.0",
     "@tiptap/pm": "^3.3.0",
     "@tiptap/react": "^3.3.0",
     "@tiptap/starter-kit": "^3.3.0",
