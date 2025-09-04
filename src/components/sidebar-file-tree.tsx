@@ -52,7 +52,11 @@ import {
   RootDropZone,
   DroppableArea,
 } from "@/components/draggable-tree-item"
-import { handleFileClick } from "@/services/tabs"
+import {
+  handleFileClick,
+  useCurrentFileID,
+  clearCurrentFile,
+} from "@/services/tabs"
 import { LoroDoc } from "loro-crdt"
 
 export function getEmptyLoroDoc() {
@@ -145,6 +149,9 @@ export function SidebarFileTree({
     name: string
     id: string
   } | null>(null)
+
+  // Currently selected file (for clearing on delete)
+  const selectedFileId = useCurrentFileID()
 
   // Drag and drop sensors
   const sensors = useSensors(
@@ -507,6 +514,9 @@ export function SidebarFileTree({
                       await deleteFolder(deleting.id)
                     } else {
                       await deleteFile(deleting.id)
+                      if (selectedFileId === deleting.id) {
+                        clearCurrentFile()
+                      }
                     }
                     setDeleting(null)
                   } catch (error) {
