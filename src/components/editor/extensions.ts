@@ -16,8 +16,9 @@ export const extensions = [
   Details,
   DetailsContent,
   DetailsSummary,
-  Emoji,
-  gitHubEmojis,
+  Emoji.configure({
+    emojis: gitHubEmojis,
+  }),
   TaskList,
   TaskItem.configure({
     // nested: true,
