@@ -7,7 +7,7 @@ import {
   ResizablePanelGroup,
 } from "@/components/ui/resizable"
 import type { PaneId, WorkbenchState, WorkbenchTab } from "./types"
-import { useCurrentFileID } from "@/services/tabs"
+import { useCurrentFileID, clearCurrentFile } from "@/services/tabs"
 import { fileCollection } from "@/lib/collections"
 import { eq, useLiveQuery } from "@tanstack/react-db"
 import WorkbenchPane from "./WorkbenchPane"
@@ -36,6 +36,16 @@ export function WorkbenchPanes({
     [fileIdForQuery]
   )
   const currentFileName = fileRows?.[0]?.name as string | undefined
+
+  // Observe project files to prune tabs for deleted files
+  const { data: projectFileIds = [] } = useLiveQuery(
+    (q) =>
+      q
+        .from({ c: fileCollection })
+        .where(({ c }) => eq(c.project_id, projectId))
+        .select(({ c }) => ({ id: c.id })),
+    [projectId]
+  )
 
   useEffect(() => {
     if (!currentFileId) return
@@ -111,6 +121,38 @@ export function WorkbenchPanes({
       return next
     })
   }, [currentFileId, currentFileName, setState])
+
+  // Prune tabs for files that no longer exist and fix active tab
+  useEffect(() => {
+    const idSet = new Set<string>(
+      projectFileIds.map((r: { id: string }) => r.id)
+    )
+
+    setState((prev) => {
+      const prunePane = (pane: {
+        tabs: WorkbenchTab[]
+        activeTabId?: string
+      }) => {
+        const tabs = pane.tabs.filter((t) => !t.fileId || idSet.has(t.fileId))
+        if (tabs.length === pane.tabs.length) return pane
+        const nextActiveId = tabs.some((t) => t.id === pane.activeTabId)
+          ? pane.activeTabId
+          : tabs.length > 0
+            ? tabs[tabs.length - 1].id
+            : undefined
+        return { tabs, activeTabId: nextActiveId }
+      }
+
+      const left = prunePane(prev.panes.left)
+      const right = prunePane(prev.panes.right)
+      if (left === prev.panes.left && right === prev.panes.right) return prev
+      return { panes: { left, right } }
+    })
+
+    if (currentFileId && !idSet.has(currentFileId)) {
+      clearCurrentFile()
+    }
+  }, [projectFileIds, currentFileId, setState])
 
   const { defaultSizes, handleSizeChange } = usePaneSizes(projectId)
 
