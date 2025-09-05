@@ -15,6 +15,7 @@ export const filesRouter = router({
     .input(createFileSchema)
     .mutation(async ({ ctx, input }) => {
       const result = await ctx.db.transaction(async (tx) => {
+        console.log("create file", input)
         const txid = await generateTxId(tx)
         const [newItem] = await tx.insert(filesTable).values(input).returning()
         return { item: newItem, txid }
@@ -32,6 +33,7 @@ export const filesRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const result = await ctx.db.transaction(async (tx) => {
+        console.log("update file", JSON.stringify(input, null, 2))
         const txid = await generateTxId(tx)
         const [updatedItem] = await tx
           .update(filesTable)

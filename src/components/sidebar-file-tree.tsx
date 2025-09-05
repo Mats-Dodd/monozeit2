@@ -414,11 +414,23 @@ export function SidebarFileTree({
                         return
                       }
                     } else {
+                      const snapshot = getEmptyLoroDoc()
+                      const nowIso = new Date().toISOString()
                       const newFileId = await createFile({
                         projectId,
                         folderId: draft.parentId ?? null,
                         name: trimmed,
-                        content: getEmptyLoroDoc(),
+                        content: snapshot,
+                        metadata: {
+                          branches: {
+                            main: {
+                              snapshot,
+                              createdAt: nowIso,
+                              updatedAt: nowIso,
+                            },
+                          },
+                          activeBranch: "main",
+                        },
                       })
                       // Select the newly created file
                       handleFileClick(newFileId)

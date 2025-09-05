@@ -54,6 +54,7 @@ export function toDbFileCreate(ui: Omit<FileCreateUI, "id"> & { id: string }) {
     folder_id: ui.folderId ?? null,
     name: ui.name,
     content: (ui.content ?? { text: "" }) as string,
+    metadata: (ui.metadata ?? {}) as Record<string, unknown>,
   }
 }
 
@@ -62,6 +63,7 @@ export function toDbFileUpdate(ui: FileUpdateUIPatch) {
     name: ui.name,
     folder_id: ui.folderId,
     content: ui.content as string | undefined,
+    metadata: ui.metadata as Record<string, unknown> | undefined,
   }
   return result
 }
