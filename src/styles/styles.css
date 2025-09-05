@@ -178,6 +178,11 @@ code {
   .tiptap {
     @apply px-6 md:px-8 py-4 text-[13px] leading-6 max-w-[80ch] mx-auto;
   }
+  /* ProseMirror expects white-space to be set. Prefer pre-wrap. */
+  .tiptap.ProseMirror {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
   .tiptap p {
     margin: 0.25rem 0;
   }
@@ -228,5 +233,20 @@ code {
   .tiptap .is-editor-empty:first-child::before {
     content: attr(data-placeholder);
     @apply text-muted-foreground/70 float-left h-0 pointer-events-none;
+  }
+  /* Remove focus outline/ring from the editor root */
+  .tiptap.ProseMirror:focus,
+  .tiptap.ProseMirror:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
   }
 }

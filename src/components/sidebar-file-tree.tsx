@@ -7,6 +7,7 @@ import { folderCollection, fileCollection } from "@/lib/collections"
 import { createFolder, updateFolder, deleteFolder } from "@/services/folders"
 import { createFile, updateFile, deleteFile } from "@/services/files"
 import { Input } from "@/components/ui/input"
+import { FileTextIcon } from "@/components/ui/file-text"
 import {
   ContextMenu,
   ContextMenuContent,
@@ -738,7 +739,10 @@ function RootList(props: {
                 <div>
                   <TreeNodeTrigger onClick={() => onFileClick(file.id)}>
                     <TreeExpander hasChildren={false} />
-                    <TreeIcon hasChildren={false} />
+                    <TreeIcon
+                      hasChildren={false}
+                      icon={<FileTextIcon size={16} />}
+                    />
                     {renaming?.type === "file" && renaming.id === file.id ? (
                       <InlineNameEditor
                         defaultValue={renaming.name}
@@ -770,7 +774,12 @@ function RootList(props: {
         <TreeNode nodeId="__draft_root__" level={0} parentPath={[]}>
           <TreeNodeTrigger>
             <TreeExpander hasChildren={false} />
-            <TreeIcon hasChildren={draft.type === "folder"} />
+            <TreeIcon
+              hasChildren={draft.type === "folder"}
+              icon={
+                draft.type === "folder" ? undefined : <FileTextIcon size={16} />
+              }
+            />
             <InlineNameEditor
               placeholder={draft.type === "folder" ? "New folder" : "New file"}
               onCancel={onCancelDraft}
@@ -895,7 +904,14 @@ function FolderItem(props: {
               >
                 <TreeNodeTrigger>
                   <TreeExpander hasChildren={false} />
-                  <TreeIcon hasChildren={draft.type === "folder"} />
+                  <TreeIcon
+                    hasChildren={draft.type === "folder"}
+                    icon={
+                      draft.type === "folder" ? undefined : (
+                        <FileTextIcon size={16} />
+                      )
+                    }
+                  />
                   <InlineNameEditor
                     placeholder={
                       draft.type === "folder" ? "New folder" : "New file"
@@ -953,7 +969,10 @@ function FolderItem(props: {
                       <div>
                         <TreeNodeTrigger onClick={() => onFileClick(file.id)}>
                           <TreeExpander hasChildren={false} />
-                          <TreeIcon hasChildren={false} />
+                          <TreeIcon
+                            hasChildren={false}
+                            icon={<FileTextIcon size={16} />}
+                          />
                           {renaming?.type === "file" &&
                           renaming.id === file.id ? (
                             <InlineNameEditor
