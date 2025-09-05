@@ -9,6 +9,7 @@ import {
   getBranchesMetadata,
   setActiveBranch as mdSetActiveBranch,
   mergeBranchesSync,
+  renameBranch as mdRenameBranch,
 } from "@/lib/crdt/branch-utils"
 
 export async function createFile(args: {
@@ -123,6 +124,39 @@ export async function mergeBranchInto(args: {
     draft.metadata = {
       branches: { ...md.branches, [target]: updatedTarget },
       activeBranch: target,
+    } as unknown as Record<string, unknown>
+  })
+}
+
+export async function renameBranch(args: {
+  id: string
+  from: string
+  to: string
+}): Promise<void> {
+  const { id, from, to } = args
+  fileCollection.update(id, (draft) => {
+    const md = getBranchesMetadata(draft)
+    const updated = mdRenameBranch(md, from, to)
+    draft.metadata = updated as unknown as Record<string, unknown>
+  })
+}
+
+export async function deleteBranch(args: {
+  id: string
+  branchName: string
+}): Promise<void> {
+  const { id, branchName } = args
+  fileCollection.update(id, (draft) => {
+    const md = getBranchesMetadata(draft)
+    // Remove and choose fallback active if needed
+    const { [branchName]: _removed, ...rest } = md.branches
+    let nextActive = md.activeBranch
+    if (nextActive === branchName) {
+      nextActive = Object.keys(rest)[0]
+    }
+    draft.metadata = {
+      branches: rest,
+      activeBranch: nextActive,
     } as unknown as Record<string, unknown>
   })
 }
