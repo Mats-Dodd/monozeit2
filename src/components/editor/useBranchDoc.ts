@@ -5,6 +5,7 @@ import { acquireLoroDoc, releaseLoroDoc } from "@/lib/crdt/loro-doc-registry"
 import { useCrdtSnapshotSync } from "@/lib/crdt/useCrdtSnapshotSync"
 import {
   getBranchesMetadata,
+  isBranchesMetadata,
   updateBranchSnapshot,
   type BranchesMetadata,
 } from "@/lib/crdt/branch-utils"
@@ -50,13 +51,17 @@ export function useBranchDoc(fileId: string) {
         activeBranch,
         hasFile: !!file,
       })
-      // Do NOT overwrite activeBranch here; only update the branch snapshot
-      const updated = updateBranchSnapshot(
-        metadata as BranchesMetadata,
-        activeBranch,
-        base64
-      )
-      void updateFile({ id: fileId, metadata: updated })
+      // Avoid writing metadata until the server-provided metadata is present
+      if (!isBranchesMetadata(file?.metadata)) {
+        console.log("[branches] skip export: metadata not ready")
+        return
+      }
+      const currentMd = file!.metadata as unknown as BranchesMetadata
+      const updated = updateBranchSnapshot(currentMd, activeBranch, base64)
+      void updateFile({
+        id: fileId,
+        metadata: updated as unknown as Record<string, unknown>,
+      })
     },
     debounceMs: 500,
   })
