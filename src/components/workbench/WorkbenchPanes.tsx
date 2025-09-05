@@ -38,7 +38,7 @@ export function WorkbenchPanes({
   const currentFileName = fileRows?.[0]?.name as string | undefined
 
   // Observe project files to prune tabs for deleted files
-  const { data: projectFileIds = [] } = useLiveQuery(
+  const { data: projectFileIds = [], isReady: filesReady } = useLiveQuery(
     (q) =>
       q
         .from({ c: fileCollection })
@@ -124,6 +124,7 @@ export function WorkbenchPanes({
 
   // Prune tabs for files that no longer exist and fix active tab
   useEffect(() => {
+    if (!filesReady) return
     const idSet = new Set<string>(
       projectFileIds.map((r: { id: string }) => r.id)
     )
@@ -152,7 +153,7 @@ export function WorkbenchPanes({
     if (currentFileId && !idSet.has(currentFileId)) {
       clearCurrentFile()
     }
-  }, [projectFileIds, currentFileId, setState])
+  }, [filesReady, projectFileIds, currentFileId, setState])
 
   const { defaultSizes, handleSizeChange } = usePaneSizes(projectId)
 
