@@ -5,6 +5,7 @@ import { getDragData, setDragData } from "./dnd"
 import { WORKBENCH_TAB_MIME, STONES_FILE_MIME } from "./dnd/constants"
 import { clearCurrentFile } from "@/services/tabs"
 import EmptyPane from "./EmptyPane"
+import { BranchMenu } from "@/components/editor/BranchMenu"
 import TabChip from "./TabChip"
 
 export default function WorkbenchPane({
@@ -24,6 +25,7 @@ export default function WorkbenchPane({
 }) {
   const pane = state.panes[paneId]
   const activeTabId = pane.activeTabId ?? pane.tabs[0]?.id
+  const activeTab = pane.tabs.find((t) => t.id === activeTabId)
   const [isCrossPaneDragOver, setIsCrossPaneDragOver] = useState(false)
 
   const getCrossIntent = useCallback(
@@ -209,31 +211,38 @@ export default function WorkbenchPane({
 
   return (
     <div className="relative flex h-full w-full flex-col overflow-hidden">
-      <div
-        className="relative flex h-9 items-center gap-1.5 px-2 overflow-x-auto overflow-y-hidden thin-scrollbar scrollbar-gutter-stable scroll-shadows-x"
-        onDragOver={(e) => {
-          allowDrop(e)
-          handleDragOverPane(e)
-        }}
-        onDrop={(e) => onDropOnList(e)}
-        onMouseDown={() => onFocusPane(paneId)}
-        onDragLeave={() => setIsCrossPaneDragOver(false)}
-      >
-        {pane.tabs.map((tab, index) => (
-          <TabChip
-            key={tab.id}
-            tab={tab}
-            active={activeTabId === tab.id}
-            onActivate={() => {
-              onFocusPane(paneId)
-              setActive(tab.id)
-            }}
-            onClose={() => closeTab(tab.id)}
-            onDragStart={(e) => onDragStartTab(e, tab.id)}
-            onDropBefore={(e) => onDropOnList(e, index)}
-            onDropAfter={(e) => onDropOnList(e, index + 1)}
-          />
-        ))}
+      <div className="relative flex items-center gap-2 px-2">
+        <div
+          className="relative flex h-9 flex-1 items-center gap-1.5 overflow-x-auto overflow-y-hidden thin-scrollbar scrollbar-gutter-stable scroll-shadows-x"
+          onDragOver={(e) => {
+            allowDrop(e)
+            handleDragOverPane(e)
+          }}
+          onDrop={(e) => onDropOnList(e)}
+          onMouseDown={() => onFocusPane(paneId)}
+          onDragLeave={() => setIsCrossPaneDragOver(false)}
+        >
+          {pane.tabs.map((tab, index) => (
+            <TabChip
+              key={tab.id}
+              tab={tab}
+              active={activeTabId === tab.id}
+              onActivate={() => {
+                onFocusPane(paneId)
+                setActive(tab.id)
+              }}
+              onClose={() => closeTab(tab.id)}
+              onDragStart={(e) => onDragStartTab(e, tab.id)}
+              onDropBefore={(e) => onDropOnList(e, index)}
+              onDropAfter={(e) => onDropOnList(e, index + 1)}
+            />
+          ))}
+        </div>
+        {activeTab?.fileId ? (
+          <div className="sticky right-0 pl-2 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <BranchMenu fileId={activeTab.fileId} />
+          </div>
+        ) : null}
       </div>
       <div
         className="flex-1 overflow-auto"

@@ -23,10 +23,10 @@ export default function TabChip({
   return (
     <div
       className={cn(
-        "group/tab inline-flex h-7 select-none items-center gap-1.5 rounded-md px-2 text-[13px] leading-none",
+        "group/tab inline-flex h-7 select-none items-center gap-1.5 px-2 text-[13px] leading-none border-b-2 border-transparent",
         active
-          ? "bg-muted text-foreground shadow-[inset_0_-1px_0_0_rgba(0,0,0,0.06)]"
-          : "hover:bg-muted/70 text-muted-foreground"
+          ? "text-foreground font-medium border-foreground"
+          : "text-muted-foreground hover:text-foreground"
       )}
       draggable
       onDragStart={onDragStart}

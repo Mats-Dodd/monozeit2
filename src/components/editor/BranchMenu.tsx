@@ -52,7 +52,7 @@ export function BranchMenu({
   flush,
 }: {
   fileId: string
-  flush: () => void
+  flush?: () => void
 }) {
   const { data } = useLiveQuery(
     (q) => q.from({ c: fileCollection }).where(({ c }) => eq(c.id, fileId)),
@@ -83,8 +83,13 @@ export function BranchMenu({
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className="text-xs border rounded px-2 py-0.5">
-            {active}
+          <button
+            title={active}
+            className="text-xs rounded px-2 py-1 h-7 hover:bg-muted/70 text-muted-foreground hover:text-foreground"
+          >
+            <span className="truncate max-w-[160px] inline-block align-middle">
+              {active}
+            </span>
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="min-w-[220px]">
@@ -93,7 +98,7 @@ export function BranchMenu({
             value={active}
             onValueChange={async (value) => {
               if (value === active) return
-              flush()
+              flush?.()
               await setActiveBranchSvc({ id: fileId, branchName: value })
             }}
           >
@@ -106,7 +111,7 @@ export function BranchMenu({
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onSelect={async () => {
-              flush()
+              flush?.()
               const created = await createBranchSvc({
                 id: fileId,
                 fromBranch: active,
@@ -168,7 +173,7 @@ export function BranchMenu({
               onClick={async () => {
                 const to = renameValue.trim()
                 if (!to) return
-                flush()
+                flush?.()
                 await renameBranchSvc({ id: fileId, from: active, to })
                 setRenameOpen(false)
                 await setActiveBranchSvc({ id: fileId, branchName: to })
@@ -199,7 +204,7 @@ export function BranchMenu({
                   toast.error("Cannot delete main branch")
                   return
                 }
-                flush()
+                flush?.()
                 await deleteBranchSvc({ id: fileId, branchName: active })
                 toast.success(`Deleted ${active}`)
               }}
@@ -243,7 +248,7 @@ export function BranchMenu({
               className="text-xs border rounded px-2 py-0.5"
               onClick={async () => {
                 if (!mergeTarget) return
-                flush()
+                flush?.()
                 await mergeBranchIntoSvc({
                   id: fileId,
                   source: active,
