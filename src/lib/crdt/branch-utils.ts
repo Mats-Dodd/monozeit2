@@ -37,6 +37,27 @@ export function generateUniqueBranchName(
   return `${safeBase}-${i}`
 }
 
+export function generateSequentialBranchName(
+  metadata: Partial<BranchesMetadata> | undefined,
+  base: string
+): BranchName {
+  const safeBase = sanitizeBranchName(base || "branch")
+  const names = Object.keys(metadata?.branches ?? {})
+  let max = 0
+  const pattern = new RegExp(`^${safeBase}-(\\d+)$`)
+  for (const name of names) {
+    const match = name.match(pattern)
+    if (match && match[1]) {
+      const num = parseInt(match[1], 10)
+      if (!Number.isNaN(num)) {
+        if (num > max) max = num
+      }
+    }
+  }
+  const next = max + 1
+  return `${safeBase}-${next}`
+}
+
 export function getBranchesMetadata(
   input: { metadata?: unknown } | undefined
 ): BranchesMetadata {

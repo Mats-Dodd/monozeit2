@@ -85,8 +85,6 @@ function PaneFileEditor({ fileId }: { fileId: string }) {
     () => branches.filter((b) => b !== active),
     [branches, active]
   )
-  const [createOpen, setCreateOpen] = useState(false)
-  const [createName, setCreateName] = useState("")
   const [renameOpen, setRenameOpen] = useState(false)
   const [renameValue, setRenameValue] = useState(active)
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -122,7 +120,17 @@ function PaneFileEditor({ fileId }: { fileId: string }) {
               ))}
             </DropdownMenuRadioGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => setCreateOpen(true)}>
+            <DropdownMenuItem
+              onSelect={async () => {
+                await flush()
+                const created = await createBranchSvc({
+                  id: fileId,
+                  fromBranch: active,
+                })
+                await setActiveBranchSvc({ id: fileId, branchName: created })
+                toast.success(`Created branch ${created}`)
+              }}
+            >
               New branch
             </DropdownMenuItem>
             <DropdownMenuItem
@@ -150,49 +158,7 @@ function PaneFileEditor({ fileId }: { fileId: string }) {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        {/* Create Branch Dialog */}
-        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create branch</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-2">
-              <div className="text-xs text-muted-foreground">
-                Base: {active}
-              </div>
-              <Input
-                placeholder="branch name"
-                value={createName}
-                onChange={(e) => setCreateName(e.target.value)}
-                className="h-8 text-xs"
-              />
-            </div>
-            <DialogFooter>
-              <DialogClose asChild>
-                <button className="text-xs border rounded px-2 py-0.5">
-                  Cancel
-                </button>
-              </DialogClose>
-              <button
-                className="text-xs border rounded px-2 py-0.5"
-                onClick={async () => {
-                  await flush()
-                  const created = await createBranchSvc({
-                    id: fileId,
-                    baseName: createName || "branch",
-                    fromBranch: active,
-                  })
-                  setCreateName("")
-                  setCreateOpen(false)
-                  await setActiveBranchSvc({ id: fileId, branchName: created })
-                  toast.success(`Created branch ${created}`)
-                }}
-              >
-                Create
-              </button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+
         {/* Rename Branch Dialog */}
         <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
           <DialogContent>

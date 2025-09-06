@@ -5,7 +5,7 @@ import { createFileSchema, updateFileSchema } from "@/db/schema"
 import { toDbFileCreate, toDbFileUpdate } from "./mappers"
 import {
   createBranch as mdCreateBranch,
-  generateUniqueBranchName,
+  generateSequentialBranchName,
   getBranchesMetadata,
   setActiveBranch as mdSetActiveBranch,
   mergeBranchesSync,
@@ -84,7 +84,7 @@ export async function createBranch(args: {
       fromBranch: fromBranch ?? null,
       existing: Object.keys(md.branches ?? {}),
     })
-    const generated = generateUniqueBranchName(md, baseName)
+    const generated = generateSequentialBranchName(md, baseName)
     newName = generated
     const updated = mdCreateBranch(
       md,
