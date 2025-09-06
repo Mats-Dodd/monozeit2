@@ -147,30 +147,120 @@ export async function mergeBranches(
   targetSnapshot: string,
   sourceSnapshot: string
 ): Promise<string> {
-  const targetDoc = new LoroDoc()
-  if (targetSnapshot) {
+  console.log("[branches] merge start (async)", {
+    hasTarget: !!targetSnapshot,
+    targetLen: targetSnapshot ? targetSnapshot.length : 0,
+    hasSource: !!sourceSnapshot,
+    sourceLen: sourceSnapshot ? sourceSnapshot.length : 0,
+  })
+  try {
+    if (!targetSnapshot && !sourceSnapshot) return ""
+    if (!targetSnapshot) return sourceSnapshot
+    if (!sourceSnapshot) return targetSnapshot
+    if (targetSnapshot === sourceSnapshot) return targetSnapshot
+
+    const targetDoc = new LoroDoc()
     targetDoc.import(base64ToBytes(targetSnapshot))
+
+    const sourceDoc = new LoroDoc()
+    sourceDoc.import(base64ToBytes(sourceSnapshot))
+
+    // Attempt source -> target first
+    const sourceUpdate = sourceDoc.export({ mode: "update" })
+    console.log("[branches] merge source update size (async)", {
+      updateLen: sourceUpdate.length,
+    })
+    try {
+      if (sourceUpdate.length > 0) {
+        targetDoc.import(sourceUpdate)
+      }
+      const bytes = targetDoc.export({ mode: "snapshot" })
+      console.log("[branches] merge result (async)", {
+        mergedLen: bytes.length,
+      })
+      return bytesToBase64(bytes)
+    } catch (e1) {
+      console.warn("[branches] merge retry opposite direction (async)", e1)
+      // Try target -> source
+      const targetUpdate = targetDoc.export({ mode: "update" })
+      try {
+        if (targetUpdate.length > 0) {
+          sourceDoc.import(targetUpdate)
+        }
+        const bytes = sourceDoc.export({ mode: "snapshot" })
+        console.log("[branches] merge result via opposite (async)", {
+          mergedLen: bytes.length,
+        })
+        return bytesToBase64(bytes)
+      } catch (e2) {
+        console.error("[branches] merge failed both directions (async)", e2)
+        // As a last resort, prefer source snapshot (last-writer-wins)
+        return sourceSnapshot
+      }
+    }
+  } catch (e) {
+    console.error("[branches] merge error (async)", e)
+    throw e
   }
-  if (sourceSnapshot) {
-    targetDoc.import(base64ToBytes(sourceSnapshot))
-  }
-  const bytes = targetDoc.export({ mode: "snapshot" })
-  return bytesToBase64(bytes)
 }
 
 export function mergeBranchesSync(
   targetSnapshot: string,
   sourceSnapshot: string
 ): string {
-  const targetDoc = new LoroDoc()
-  if (targetSnapshot) {
+  console.log("[branches] merge start (sync)", {
+    hasTarget: !!targetSnapshot,
+    targetLen: targetSnapshot ? targetSnapshot.length : 0,
+    hasSource: !!sourceSnapshot,
+    sourceLen: sourceSnapshot ? sourceSnapshot.length : 0,
+  })
+  try {
+    if (!targetSnapshot && !sourceSnapshot) return ""
+    if (!targetSnapshot) return sourceSnapshot
+    if (!sourceSnapshot) return targetSnapshot
+    if (targetSnapshot === sourceSnapshot) return targetSnapshot
+
+    const targetDoc = new LoroDoc()
     targetDoc.import(base64ToBytes(targetSnapshot))
+
+    const sourceDoc = new LoroDoc()
+    sourceDoc.import(base64ToBytes(sourceSnapshot))
+
+    // Attempt source -> target first
+    const sourceUpdate = sourceDoc.export({ mode: "update" })
+    console.log("[branches] merge source update size (sync)", {
+      updateLen: sourceUpdate.length,
+    })
+    try {
+      if (sourceUpdate.length > 0) {
+        targetDoc.import(sourceUpdate)
+      }
+      const bytes = targetDoc.export({ mode: "snapshot" })
+      console.log("[branches] merge result (sync)", { mergedLen: bytes.length })
+      return bytesToBase64(bytes)
+    } catch (e1) {
+      console.warn("[branches] merge retry opposite direction (sync)", e1)
+      // Try target -> source
+      const targetUpdate = targetDoc.export({ mode: "update" })
+      try {
+        if (targetUpdate.length > 0) {
+          sourceDoc.import(targetUpdate)
+        }
+        const bytes = sourceDoc.export({ mode: "snapshot" })
+        console.log("[branches] merge result via opposite (sync)", {
+          mergedLen: bytes.length,
+        })
+        return bytesToBase64(bytes)
+      } catch (e2) {
+        console.error("[branches] merge failed both directions (sync)", e2)
+        // As a last resort, prefer source snapshot (last-writer-wins)
+        return sourceSnapshot
+      }
+    }
+  } catch (e) {
+    console.error("[branches] merge error (sync)", e)
+    throw e
   }
-  if (sourceSnapshot) {
-    targetDoc.import(base64ToBytes(sourceSnapshot))
-  }
-  const bytes = targetDoc.export({ mode: "snapshot" })
-  return bytesToBase64(bytes)
 }
 
 export function bytesToBase64(bytes: Uint8Array): string {

@@ -112,9 +112,22 @@ export async function mergeBranchInto(args: {
   const { id, source, target } = args
   fileCollection.update(id, (draft) => {
     const md = getBranchesMetadata(draft)
+    console.log("[branches] mergeBranchInto start", {
+      id,
+      source,
+      target,
+      branches: Object.keys(md.branches ?? {}),
+      active: md.activeBranch ?? null,
+    })
     const targetSnapshot = md.branches[target]?.snapshot ?? ""
     const sourceSnapshot = md.branches[source]?.snapshot ?? ""
-    const merged = mergeBranchesSync(targetSnapshot, sourceSnapshot)
+    let merged = ""
+    try {
+      merged = mergeBranchesSync(targetSnapshot, sourceSnapshot)
+    } catch (e) {
+      console.warn("[branches] mergeBranchInto fallback to source snapshot", e)
+      merged = sourceSnapshot || targetSnapshot
+    }
     const nowIso = new Date().toISOString()
     const updatedTarget = {
       snapshot: merged,
@@ -125,6 +138,12 @@ export async function mergeBranchInto(args: {
       branches: { ...md.branches, [target]: updatedTarget },
       activeBranch: target,
     } as unknown as Record<string, unknown>
+    console.log("[branches] mergeBranchInto success", {
+      id,
+      source,
+      target,
+      mergedSnapshotLen: merged.length,
+    })
   })
 }
 
