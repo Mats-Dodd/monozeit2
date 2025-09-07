@@ -43,9 +43,11 @@ export type FileCreateUI = {
   folderId?: string | null
   name: string
   content?: string
+  metadata?: Record<string, unknown>
 }
 export type FileUpdateUIPatch = {
   name?: string
   folderId?: string | null
   content?: string
+  metadata?: Record<string, unknown>
 }

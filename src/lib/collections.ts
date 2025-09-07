@@ -176,6 +176,7 @@ export const fileCollection = createCollection(
         folder_id: newFile.folder_id,
         name: newFile.name,
         content: newFile.content,
+        metadata: newFile.metadata,
       })
 
       return { txid: result.txid }
@@ -188,6 +189,7 @@ export const fileCollection = createCollection(
           folder_id: updatedFile.folder_id,
           name: updatedFile.name,
           content: updatedFile.content,
+          metadata: updatedFile.metadata,
         },
       })
 

@@ -1,0 +1,251 @@
+import { LoroDoc } from "loro-crdt"
+
+export type BranchName = string
+
+export type BranchData = {
+  snapshot: string
+  createdAt: string
+  updatedAt: string
+}
+
+export type BranchesMetadata = {
+  branches: Record<BranchName, BranchData>
+  activeBranch?: BranchName
+  recentSnapshots?: Array<{
+    snapshot: string
+    timestamp: string
+    branchName: BranchName
+  }>
+}
+
+export function sanitizeBranchName(name: string): string {
+  const trimmed = name.trim().toLowerCase()
+  // Replace spaces with dashes and strip invalid chars
+  const dashed = trimmed.replace(/\s+/g, "-")
+  return dashed.replace(/[^a-z0-9-_]/g, "")
+}
+
+export function generateUniqueBranchName(
+  metadata: Partial<BranchesMetadata> | undefined,
+  base: string
+): BranchName {
+  const safeBase = sanitizeBranchName(base || "branch")
+  const existing = new Set(Object.keys(metadata?.branches ?? {}))
+  if (!existing.has(safeBase)) return safeBase
+  let i = 1
+  while (existing.has(`${safeBase}-${i}`)) i++
+  return `${safeBase}-${i}`
+}
+
+export function generateSequentialBranchName(
+  metadata: Partial<BranchesMetadata> | undefined,
+  base: string
+): BranchName {
+  const safeBase = sanitizeBranchName(base || "branch")
+  const names = Object.keys(metadata?.branches ?? {})
+  let max = 0
+  const pattern = new RegExp(`^${safeBase}-(\\d+)$`)
+  for (const name of names) {
+    const match = name.match(pattern)
+    if (match && match[1]) {
+      const num = parseInt(match[1], 10)
+      if (!Number.isNaN(num)) {
+        if (num > max) max = num
+      }
+    }
+  }
+  const next = max + 1
+  return `${safeBase}-${next}`
+}
+
+export function getBranchesMetadata(
+  input: { metadata?: unknown } | undefined
+): BranchesMetadata {
+  const metadataValue = input?.metadata
+  if (isBranchesMetadata(metadataValue)) {
+    return metadataValue
+  }
+  return { branches: {}, activeBranch: undefined }
+}
+
+export function isBranchesMetadata(value: unknown): value is BranchesMetadata {
+  if (!value || typeof value !== "object") return false
+  const v = value as { branches?: unknown; activeBranch?: unknown }
+  if (v.branches && typeof v.branches === "object") return true
+  return false
+}
+
+export function setActiveBranch(
+  metadata: BranchesMetadata,
+  branchName: BranchName
+): BranchesMetadata {
+  return { ...metadata, activeBranch: branchName }
+}
+
+export function createBranch(
+  metadata: BranchesMetadata,
+  newBranchName: BranchName,
+  fromBranch?: BranchName,
+  initialSnapshot?: string
+): BranchesMetadata {
+  const now = new Date().toISOString()
+  const source = fromBranch
+    ? (metadata.branches[fromBranch]?.snapshot ?? initialSnapshot ?? "")
+    : (initialSnapshot ?? "")
+  return {
+    ...metadata,
+    branches: {
+      ...metadata.branches,
+      [newBranchName]: { snapshot: source, createdAt: now, updatedAt: now },
+    },
+  }
+}
+
+export function renameBranch(
+  metadata: BranchesMetadata,
+  from: BranchName,
+  to: BranchName
+): BranchesMetadata {
+  if (from === to) return metadata
+  const { [from]: fromData, ...rest } = metadata.branches
+  if (!fromData) return metadata
+  const branches = { ...rest, [to]: fromData }
+  const activeBranch =
+    metadata.activeBranch === from ? to : metadata.activeBranch
+  return { ...metadata, branches, activeBranch }
+}
+
+export function deleteBranch(
+  metadata: BranchesMetadata,
+  branchName: BranchName
+): BranchesMetadata {
+  const { [branchName]: _removed, ...rest } = metadata.branches
+  let activeBranch = metadata.activeBranch
+  if (activeBranch === branchName) {
+    activeBranch = Object.keys(rest)[0]
+  }
+  return { ...metadata, branches: rest, activeBranch }
+}
+
+export function updateBranchSnapshot(
+  metadata: BranchesMetadata,
+  branchName: BranchName,
+  base64: string
+): BranchesMetadata {
+  const existing = metadata.branches[branchName]
+  const now = new Date().toISOString()
+  const updated: BranchData = existing
+    ? { ...existing, snapshot: base64, updatedAt: now }
+    : { snapshot: base64, createdAt: now, updatedAt: now }
+  return {
+    ...metadata,
+    branches: { ...metadata.branches, [branchName]: updated },
+  }
+}
+
+export async function mergeBranches(
+  targetSnapshot: string,
+  sourceSnapshot: string
+): Promise<string> {
+  try {
+    if (!targetSnapshot && !sourceSnapshot) return ""
+    if (!targetSnapshot) return sourceSnapshot
+    if (!sourceSnapshot) return targetSnapshot
+    if (targetSnapshot === sourceSnapshot) return targetSnapshot
+
+    const targetDoc = new LoroDoc()
+    targetDoc.import(base64ToBytes(targetSnapshot))
+
+    const sourceDoc = new LoroDoc()
+    sourceDoc.import(base64ToBytes(sourceSnapshot))
+
+    // Attempt source -> target first
+    const sourceUpdate = sourceDoc.export({ mode: "update" })
+    try {
+      if (sourceUpdate.length > 0) {
+        targetDoc.import(sourceUpdate)
+      }
+      const bytes = targetDoc.export({ mode: "snapshot" })
+      return bytesToBase64(bytes)
+    } catch (_e1) {
+      // Try target -> source
+      const targetUpdate = targetDoc.export({ mode: "update" })
+      try {
+        if (targetUpdate.length > 0) {
+          sourceDoc.import(targetUpdate)
+        }
+        const bytes = sourceDoc.export({ mode: "snapshot" })
+        return bytesToBase64(bytes)
+      } catch (_e2) {
+        // As a last resort, prefer source snapshot (last-writer-wins)
+        return sourceSnapshot
+      }
+    }
+  } catch (e) {
+    console.error("[branches] merge error (async)", e)
+    throw e
+  }
+}
+
+export function mergeBranchesSync(
+  targetSnapshot: string,
+  sourceSnapshot: string
+): string {
+  try {
+    if (!targetSnapshot && !sourceSnapshot) return ""
+    if (!targetSnapshot) return sourceSnapshot
+    if (!sourceSnapshot) return targetSnapshot
+    if (targetSnapshot === sourceSnapshot) return targetSnapshot
+
+    const targetDoc = new LoroDoc()
+    targetDoc.import(base64ToBytes(targetSnapshot))
+
+    const sourceDoc = new LoroDoc()
+    sourceDoc.import(base64ToBytes(sourceSnapshot))
+
+    // Attempt source -> target first
+    const sourceUpdate = sourceDoc.export({ mode: "update" })
+    try {
+      if (sourceUpdate.length > 0) {
+        targetDoc.import(sourceUpdate)
+      }
+      const bytes = targetDoc.export({ mode: "snapshot" })
+      return bytesToBase64(bytes)
+    } catch (_e1) {
+      // Try target -> source
+      const targetUpdate = targetDoc.export({ mode: "update" })
+      try {
+        if (targetUpdate.length > 0) {
+          sourceDoc.import(targetUpdate)
+        }
+        const bytes = sourceDoc.export({ mode: "snapshot" })
+        return bytesToBase64(bytes)
+      } catch (e2) {
+        console.error("[branches] merge failed both directions (sync)", e2)
+        // As a last resort, prefer source snapshot (last-writer-wins)
+        return sourceSnapshot
+      }
+    }
+  } catch (e) {
+    console.error("[branches] merge error (sync)", e)
+    throw e
+  }
+}
+
+export function bytesToBase64(bytes: Uint8Array): string {
+  let binary = ""
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
+  return typeof btoa !== "undefined"
+    ? btoa(binary)
+    : Buffer.from(binary, "binary").toString("base64")
+}
+
+export function base64ToBytes(base64: string): Uint8Array {
+  const binary =
+    typeof atob !== "undefined"
+      ? atob(base64)
+      : Buffer.from(base64, "base64").toString("binary")
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+  return bytes
+}
