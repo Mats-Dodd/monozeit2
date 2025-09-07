@@ -147,12 +147,6 @@ export async function mergeBranches(
   targetSnapshot: string,
   sourceSnapshot: string
 ): Promise<string> {
-  console.log("[branches] merge start (async)", {
-    hasTarget: !!targetSnapshot,
-    targetLen: targetSnapshot ? targetSnapshot.length : 0,
-    hasSource: !!sourceSnapshot,
-    sourceLen: sourceSnapshot ? sourceSnapshot.length : 0,
-  })
   try {
     if (!targetSnapshot && !sourceSnapshot) return ""
     if (!targetSnapshot) return sourceSnapshot
@@ -167,20 +161,13 @@ export async function mergeBranches(
 
     // Attempt source -> target first
     const sourceUpdate = sourceDoc.export({ mode: "update" })
-    console.log("[branches] merge source update size (async)", {
-      updateLen: sourceUpdate.length,
-    })
     try {
       if (sourceUpdate.length > 0) {
         targetDoc.import(sourceUpdate)
       }
       const bytes = targetDoc.export({ mode: "snapshot" })
-      console.log("[branches] merge result (async)", {
-        mergedLen: bytes.length,
-      })
       return bytesToBase64(bytes)
-    } catch (e1) {
-      console.warn("[branches] merge retry opposite direction (async)", e1)
+    } catch (_e1) {
       // Try target -> source
       const targetUpdate = targetDoc.export({ mode: "update" })
       try {
@@ -188,12 +175,8 @@ export async function mergeBranches(
           sourceDoc.import(targetUpdate)
         }
         const bytes = sourceDoc.export({ mode: "snapshot" })
-        console.log("[branches] merge result via opposite (async)", {
-          mergedLen: bytes.length,
-        })
         return bytesToBase64(bytes)
-      } catch (e2) {
-        console.error("[branches] merge failed both directions (async)", e2)
+      } catch (_e2) {
         // As a last resort, prefer source snapshot (last-writer-wins)
         return sourceSnapshot
       }
@@ -208,12 +191,6 @@ export function mergeBranchesSync(
   targetSnapshot: string,
   sourceSnapshot: string
 ): string {
-  console.log("[branches] merge start (sync)", {
-    hasTarget: !!targetSnapshot,
-    targetLen: targetSnapshot ? targetSnapshot.length : 0,
-    hasSource: !!sourceSnapshot,
-    sourceLen: sourceSnapshot ? sourceSnapshot.length : 0,
-  })
   try {
     if (!targetSnapshot && !sourceSnapshot) return ""
     if (!targetSnapshot) return sourceSnapshot
@@ -228,18 +205,13 @@ export function mergeBranchesSync(
 
     // Attempt source -> target first
     const sourceUpdate = sourceDoc.export({ mode: "update" })
-    console.log("[branches] merge source update size (sync)", {
-      updateLen: sourceUpdate.length,
-    })
     try {
       if (sourceUpdate.length > 0) {
         targetDoc.import(sourceUpdate)
       }
       const bytes = targetDoc.export({ mode: "snapshot" })
-      console.log("[branches] merge result (sync)", { mergedLen: bytes.length })
       return bytesToBase64(bytes)
-    } catch (e1) {
-      console.warn("[branches] merge retry opposite direction (sync)", e1)
+    } catch (_e1) {
       // Try target -> source
       const targetUpdate = targetDoc.export({ mode: "update" })
       try {
@@ -247,9 +219,6 @@ export function mergeBranchesSync(
           sourceDoc.import(targetUpdate)
         }
         const bytes = sourceDoc.export({ mode: "snapshot" })
-        console.log("[branches] merge result via opposite (sync)", {
-          mergedLen: bytes.length,
-        })
         return bytesToBase64(bytes)
       } catch (e2) {
         console.error("[branches] merge failed both directions (sync)", e2)

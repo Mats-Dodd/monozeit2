@@ -59,11 +59,6 @@ export async function setActiveBranch(args: {
   const { id, branchName } = args
   fileCollection.update(id, (draft) => {
     const md = getBranchesMetadata(draft)
-    console.log("[branches] setActiveBranch", {
-      id,
-      from: md.activeBranch ?? null,
-      to: branchName,
-    })
     const updated = mdSetActiveBranch(md, branchName)
     draft.metadata = updated as unknown as Record<string, unknown>
   })
@@ -78,12 +73,6 @@ export async function createBranch(args: {
   let newName = ""
   fileCollection.update(id, (draft) => {
     const md = getBranchesMetadata(draft)
-    console.log("[branches] createBranch start", {
-      id,
-      baseName,
-      fromBranch: fromBranch ?? null,
-      existing: Object.keys(md.branches ?? {}),
-    })
     const generated = generateSequentialBranchName(md, baseName)
     newName = generated
     const updated = mdCreateBranch(
@@ -94,12 +83,6 @@ export async function createBranch(args: {
     )
     // keep active branch as-is; user can switch after creation
     draft.metadata = updated as unknown as Record<string, unknown>
-    console.log("[branches] createBranch result", {
-      id,
-      name: generated,
-      branches: Object.keys(updated.branches ?? {}),
-      active: updated.activeBranch ?? null,
-    })
   })
   return newName
 }
@@ -112,13 +95,6 @@ export async function mergeBranchInto(args: {
   const { id, source, target } = args
   fileCollection.update(id, (draft) => {
     const md = getBranchesMetadata(draft)
-    console.log("[branches] mergeBranchInto start", {
-      id,
-      source,
-      target,
-      branches: Object.keys(md.branches ?? {}),
-      active: md.activeBranch ?? null,
-    })
     const targetSnapshot = md.branches[target]?.snapshot ?? ""
     const sourceSnapshot = md.branches[source]?.snapshot ?? ""
     let merged = ""
@@ -138,12 +114,6 @@ export async function mergeBranchInto(args: {
       branches: { ...md.branches, [target]: updatedTarget },
       activeBranch: target,
     } as unknown as Record<string, unknown>
-    console.log("[branches] mergeBranchInto success", {
-      id,
-      source,
-      target,
-      mergedSnapshotLen: merged.length,
-    })
   })
 }
 

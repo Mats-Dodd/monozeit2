@@ -45,15 +45,8 @@ export function useBranchDoc(fileId: string) {
     fileKey,
     remoteBase64: branchSnapshot,
     onExport: (base64) => {
-      console.log("[branches] sync export", {
-        fileId,
-        fileKey,
-        activeBranch,
-        hasFile: !!file,
-      })
       // Avoid writing metadata until the server-provided metadata is present
       if (!isBranchesMetadata(file?.metadata)) {
-        console.log("[branches] skip export: metadata not ready")
         return
       }
       const currentMd = file!.metadata as unknown as BranchesMetadata
