@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useLiveQuery, eq } from "@tanstack/react-db"
 import { fileCollection } from "@/lib/collections"
 import { getBranchesMetadata } from "@/lib/crdt/branch-utils"
@@ -80,7 +80,6 @@ export function BranchMenu({
   const [mergeTarget, setMergeTarget] = useState<string | undefined>(
     otherBranches[0]
   )
-  const [compareBase, setCompareBase] = useState<string>(active)
   const [isDiff, setIsDiff] = useState(false)
 
   const diffStats = useMemo(() => {
@@ -108,6 +107,22 @@ export function BranchMenu({
       ? s
       : null
   }, [fileId, isDiff, active])
+
+  // If the active branch is main, hide compare section and ensure diff mode is cleared
+  useEffect(() => {
+    if (active === "main" && isDiff) {
+      const editor = getEditor(fileId)
+      editor?.commands.clearDiffView()
+      setIsDiff(false)
+    }
+  }, [active, isDiff, fileId])
+
+  // Close merge dialog if switching to main
+  useEffect(() => {
+    if (active === "main" && mergeOpen) {
+      setMergeOpen(false)
+    }
+  }, [active, mergeOpen])
 
   return (
     <>
@@ -138,51 +153,42 @@ export function BranchMenu({
               </DropdownMenuRadioItem>
             ))}
           </DropdownMenuRadioGroup>
-          <DropdownMenuSeparator />
-          <DropdownMenuLabel>Compare changes</DropdownMenuLabel>
-          <DropdownMenuRadioGroup
-            value={compareBase}
-            onValueChange={(value) => setCompareBase(value)}
-          >
-            {branches.map((b) => (
-              <DropdownMenuRadioItem key={"base-" + b} value={b}>
-                {b}
-              </DropdownMenuRadioItem>
-            ))}
-          </DropdownMenuRadioGroup>
-          {!isDiff ? (
-            <DropdownMenuItem
-              onSelect={async () => {
-                const editor = getEditor(fileId)
-                if (!editor) return
-                const base64 =
-                  metadata.branches[compareBase]?.snapshot ??
-                  file?.content ??
-                  ""
-                const leftJson = await snapshotToJSON(base64)
-                const rightJson = editor.getJSON()
-                editor.commands.setDiffContent(leftJson, rightJson)
-                setIsDiff(true)
-              }}
-            >
-              Compare with {compareBase}
-            </DropdownMenuItem>
-          ) : (
-            <DropdownMenuItem
-              onSelect={() => {
-                const editor = getEditor(fileId)
-                editor?.commands.clearDiffView()
-                setIsDiff(false)
-              }}
-            >
-              Exit diff
-            </DropdownMenuItem>
-          )}
-          {isDiff && diffStats ? (
-            <DropdownMenuItem disabled>
-              +{diffStats.additions} / -{diffStats.deletions} / ~
-              {diffStats.modifications}
-            </DropdownMenuItem>
+          {active !== "main" ? (
+            <>
+              <DropdownMenuSeparator />
+              {!isDiff ? (
+                <DropdownMenuItem
+                  onSelect={async () => {
+                    const editor = getEditor(fileId)
+                    if (!editor) return
+                    const base64 =
+                      metadata.branches["main"]?.snapshot ?? file?.content ?? ""
+                    const leftJson = await snapshotToJSON(base64)
+                    const rightJson = editor.getJSON()
+                    editor.commands.setDiffContent(leftJson, rightJson)
+                    setIsDiff(true)
+                  }}
+                >
+                  Compare with main
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem
+                  onSelect={() => {
+                    const editor = getEditor(fileId)
+                    editor?.commands.clearDiffView()
+                    setIsDiff(false)
+                  }}
+                >
+                  Exit diff
+                </DropdownMenuItem>
+              )}
+              {isDiff && diffStats ? (
+                <DropdownMenuItem disabled>
+                  +{diffStats.additions} / -{diffStats.deletions} / ~
+                  {diffStats.modifications}
+                </DropdownMenuItem>
+              ) : null}
+            </>
           ) : null}
           <DropdownMenuSeparator />
           <DropdownMenuItem
@@ -212,9 +218,11 @@ export function BranchMenu({
           >
             Delete branch
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => setMergeOpen(true)}>
-            Merge branch...
-          </DropdownMenuItem>
+          {active !== "main" ? (
+            <DropdownMenuItem onSelect={() => setMergeOpen(true)}>
+              Merge branch...
+            </DropdownMenuItem>
+          ) : null}
           <DropdownMenuSeparator />
         </DropdownMenuContent>
       </DropdownMenu>
