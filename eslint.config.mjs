@@ -12,6 +12,11 @@ const gitignorePath = fileURLToPath(new URL(".gitignore", import.meta.url))
 
 export default [
   includeIgnoreFile(gitignorePath, "Imported .gitignore patterns"),
+  // Config files and scripts
+  {
+    files: ["*.config.ts", "vite.config.ts", "vitest.config.ts"],
+    rules: {},
+  },
   {
     files: ["src/**/*.{js,jsx,ts,tsx,mjs}"],
     languageOptions: {

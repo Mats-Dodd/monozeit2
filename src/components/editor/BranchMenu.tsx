@@ -1,7 +1,9 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useLiveQuery, eq } from "@tanstack/react-db"
 import { fileCollection } from "@/lib/collections"
 import { getBranchesMetadata } from "@/lib/crdt/branch-utils"
+import { snapshotToJSON } from "@/components/editor/utils/snapshotToJSON"
+import { getEditor } from "@/components/editor/editor-registry"
 import {
   createBranch as createBranchSvc,
   setActiveBranch as setActiveBranchSvc,
@@ -78,6 +80,49 @@ export function BranchMenu({
   const [mergeTarget, setMergeTarget] = useState<string | undefined>(
     otherBranches[0]
   )
+  const [isDiff, setIsDiff] = useState(false)
+
+  const diffStats = useMemo(() => {
+    const editor = getEditor(fileId)
+    const storage = editor?.storage as unknown as
+      | Record<string, unknown>
+      | undefined
+    const diff = storage?.["diff"] as
+      | {
+          diffResult?: {
+            stats?: {
+              additions: number
+              deletions: number
+              modifications: number
+            }
+          }
+          isDiffMode?: boolean
+        }
+      | undefined
+    const s = diff?.diffResult?.stats
+    return s &&
+      typeof s.additions === "number" &&
+      typeof s.deletions === "number" &&
+      typeof s.modifications === "number"
+      ? s
+      : null
+  }, [fileId, isDiff, active])
+
+  // If the active branch is main, hide compare section and ensure diff mode is cleared
+  useEffect(() => {
+    if (active === "main" && isDiff) {
+      const editor = getEditor(fileId)
+      editor?.commands.clearDiffView()
+      setIsDiff(false)
+    }
+  }, [active, isDiff, fileId])
+
+  // Close merge dialog if switching to main
+  useEffect(() => {
+    if (active === "main" && mergeOpen) {
+      setMergeOpen(false)
+    }
+  }, [active, mergeOpen])
 
   return (
     <>
@@ -108,6 +153,43 @@ export function BranchMenu({
               </DropdownMenuRadioItem>
             ))}
           </DropdownMenuRadioGroup>
+          {active !== "main" ? (
+            <>
+              <DropdownMenuSeparator />
+              {!isDiff ? (
+                <DropdownMenuItem
+                  onSelect={async () => {
+                    const editor = getEditor(fileId)
+                    if (!editor) return
+                    const base64 =
+                      metadata.branches["main"]?.snapshot ?? file?.content ?? ""
+                    const leftJson = await snapshotToJSON(base64)
+                    const rightJson = editor.getJSON()
+                    editor.commands.setDiffContent(leftJson, rightJson)
+                    setIsDiff(true)
+                  }}
+                >
+                  Compare with main
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem
+                  onSelect={() => {
+                    const editor = getEditor(fileId)
+                    editor?.commands.clearDiffView()
+                    setIsDiff(false)
+                  }}
+                >
+                  Exit diff
+                </DropdownMenuItem>
+              )}
+              {isDiff && diffStats ? (
+                <DropdownMenuItem disabled>
+                  +{diffStats.additions} / -{diffStats.deletions} / ~
+                  {diffStats.modifications}
+                </DropdownMenuItem>
+              ) : null}
+            </>
+          ) : null}
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onSelect={async () => {
@@ -136,15 +218,12 @@ export function BranchMenu({
           >
             Delete branch
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => setMergeOpen(true)}>
-            Merge branch...
-          </DropdownMenuItem>
+          {active !== "main" ? (
+            <DropdownMenuItem onSelect={() => setMergeOpen(true)}>
+              Merge branch...
+            </DropdownMenuItem>
+          ) : null}
           <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onSelect={() => toast.info("Compare with main — coming soon")}
-          >
-            Compare with main
-          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
