@@ -10,7 +10,7 @@
 - `src/lib/crdt/prosemirror-diff.ts`: Diff types and algorithm.
 - `src/lib/extensions/diff-extension.ts`: Commands and decorations.
 - `src/components/editor/utils/snapshotToJSON.ts`: Snapshot → JSON conversion helper.
-- `src/components/editor/EditorToolbar.tsx`: UI controls to enable/disable diff.
+- `src/components/editor/BranchMenu.tsx`: UI controls to enable/disable diff.
 
 ### Commands
 
