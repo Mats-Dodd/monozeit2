@@ -8,6 +8,7 @@ import Emoji, { gitHubEmojis } from "@tiptap/extension-emoji"
 import { TaskItem, TaskList } from "@tiptap/extension-list"
 import { Placeholder } from "@tiptap/extensions"
 import Typography from "@tiptap/extension-typography"
+import { DiffExtension } from "@/lib/extensions/diff-extension"
 
 //details needs to be set in slash command
 
@@ -28,4 +29,5 @@ export const extensions = [
     placeholder: "Do something",
   }),
   Typography,
+  DiffExtension.configure({}),
 ]

@@ -9,7 +9,8 @@
     "migrate": "drizzle-kit migrate",
     "generate": "drizzle-kit generate",
     "serve": "vite preview",
-    "test": "echo 'No tests yet'",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "lint:check": "eslint .",
     "lint": "eslint . --fix",
     "format": "prettier --write .",
@@ -128,6 +129,7 @@
     "tw-animate-css": "^1.3.7",
     "typescript": "^5.7.2",
     "vite": "^6.1.0",
+    "vitest": "^3.2.4",
     "web-vitals": "^5.0.3"
   },
   "lint-staged": {
