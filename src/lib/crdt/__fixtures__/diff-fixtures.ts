@@ -23,6 +23,35 @@ export const paragraphWithMarks = (nodes: JSONContent[]): JSONContent => ({
   content: nodes,
 })
 
+export const linkText = (text: string, href: string): JSONContent => ({
+  type: "text",
+  text,
+  marks: [{ type: "link", attrs: { href } }],
+})
+
+export const image = (src: string, alt?: string): JSONContent => ({
+  type: "image",
+  attrs: { src, alt },
+})
+
+export const bulletList = (
+  items: Array<string | JSONContent>
+): JSONContent => ({
+  type: "bulletList",
+  content: items.map((it) => ({
+    type: "listItem",
+    content: [
+      {
+        type: "paragraph",
+        content:
+          typeof it === "string"
+            ? [{ type: "text", text: it }]
+            : [it as JSONContent],
+      },
+    ],
+  })),
+})
+
 export const fixtures = {
   insertion: {
     left: doc([paragraph("Hello")]),
