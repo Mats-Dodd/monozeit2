@@ -60,7 +60,7 @@ export function AppSidebar({
 }: AppSidebarProps) {
   const navigate = useNavigate()
   const match = useMatch({
-    from: "/_authenticated/project/$projectId",
+    from: "/app/project/$projectId",
     shouldThrow: false,
   })
   const currentRouteProjectId = (
@@ -91,7 +91,7 @@ export function AppSidebar({
       setIsCreateOpen(true)
       return
     }
-    navigate({ to: "/project/$projectId", params: { projectId: value } })
+    navigate({ to: "/app/project/$projectId", params: { projectId: value } })
   }
 
   const handleCreate = () => {
@@ -105,7 +105,7 @@ export function AppSidebar({
     } satisfies ProjectCreateUI).then((id) => {
       setIsCreateOpen(false)
       setNewProjectName("")
-      navigate({ to: "/project/$projectId", params: { projectId: id } })
+      navigate({ to: "/app/project/$projectId", params: { projectId: id } })
     })
   }
 

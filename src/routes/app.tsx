@@ -9,7 +9,7 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { createProject } from "@/services/projects"
 import type { ProjectCreateUI } from "@/services/types"
 
-export const Route = createFileRoute("/_authenticated")({
+export const Route = createFileRoute("/app")({
   component: AuthenticatedLayout,
   ssr: false,
 })
@@ -33,7 +33,7 @@ function AuthenticatedLayout() {
           description: "Default project",
           shared_user_ids: [],
         } satisfies ProjectCreateUI).then((id) => {
-          navigate({ to: "/project/$projectId", params: { projectId: id } })
+          navigate({ to: "/app/project/$projectId", params: { projectId: id } })
         })
       }
     }
