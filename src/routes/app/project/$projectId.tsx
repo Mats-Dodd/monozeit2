@@ -3,7 +3,7 @@ import WorkbenchPanes from "@/components/workbench/WorkbenchPanes"
 import { EditorCore } from "@/components/editor/EditorCore"
 import { useBranchDoc } from "@/components/editor/useBranchDoc"
 
-export const Route = createFileRoute("/_authenticated/project/$projectId")({
+export const Route = createFileRoute("/app/project/$projectId")({
   component: ProjectPage,
   ssr: false,
 })

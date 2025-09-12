@@ -4,7 +4,7 @@ import { useEffect } from "react"
 import { folderCollection, projectCollection } from "@/lib/collections"
 import { authClient } from "@/lib/auth-client"
 
-export const Route = createFileRoute(`/_authenticated/`)({
+export const Route = createFileRoute(`/app/`)({
   component: IndexRedirect,
   ssr: false,
   beforeLoad: async () => {
@@ -37,7 +37,7 @@ function IndexRedirect() {
     if (projects.length > 0) {
       const firstProject = projects[0]
       navigate({
-        to: `/project/$projectId`,
+        to: `/app/project/$projectId`,
         params: { projectId: firstProject.id.toString() },
         replace: true,
       })
