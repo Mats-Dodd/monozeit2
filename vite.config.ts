@@ -10,6 +10,10 @@ const config = defineConfig({
     host: true,
     port: 5174,
   },
+  ssr: {
+    // Ensure these are bundled into the server output on Vercel
+    noExternal: ["zod", "@t3-oss/env-core", "drizzle-zod"],
+  },
   plugins: [
     // this is the plugin that enables path aliases
     wasm(),
