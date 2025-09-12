@@ -3,6 +3,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import { db } from "@/db/connection" // your drizzle instance
 import * as schema from "@/db/auth-schema"
 import { networkInterfaces } from "os"
+import { env } from "@/env/server"
 
 // Get network IP for trusted origins
 const nets = networkInterfaces()
@@ -33,9 +34,14 @@ export const auth = betterAuth({
     disableSignUp: process.env.NODE_ENV === "production",
     minPasswordLength: process.env.NODE_ENV === "production" ? 8 : 1,
   },
-  trustedOrigins: [
-    "https://tanstack-start-db-electric-starter.localhost",
-    `https://${networkIP}`,
-    "http://localhost:5173", // fallback for direct Vite access
-  ],
+  trustedOrigins: (
+    env.NODE_ENV === "production"
+      ? [env.APP_URL].filter(Boolean) as string[]
+      : [
+          "https://tanstack-start-db-electric-starter.localhost",
+          `https://${networkIP}`,
+          "http://localhost:5173",
+          "http://localhost:5174",
+        ]
+  ),
 })

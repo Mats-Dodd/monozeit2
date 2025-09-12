@@ -19,6 +19,7 @@ const config = defineConfig({
     }),
     tailwindcss(),
     tanstackStart({
+      target: "netlify",
       spa: {
         enabled: true,
       },
