@@ -19,7 +19,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
@@ -137,8 +136,15 @@ export function BranchMenu({
             </span>
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent className="min-w-[220px]">
-          <DropdownMenuLabel>Switch branch</DropdownMenuLabel>
+        <DropdownMenuContent
+          side="bottom"
+          align="start"
+          sideOffset={8}
+          alignOffset={-2}
+          collisionPadding={8}
+          className="min-w-[240px] max-h-[60vh]"
+        >
+          <DropdownMenuLabel>Branches</DropdownMenuLabel>
           <DropdownMenuRadioGroup
             value={active}
             onValueChange={async (value) => {
@@ -154,8 +160,8 @@ export function BranchMenu({
             ))}
           </DropdownMenuRadioGroup>
           {active !== "main" ? (
-            <>
-              <DropdownMenuSeparator />
+            <div className="mt-1.5">
+              {/* <DropdownMenuLabel className="text-muted-foreground">Compare</DropdownMenuLabel> */}
               {!isDiff ? (
                 <DropdownMenuItem
                   onSelect={async () => {
@@ -188,42 +194,43 @@ export function BranchMenu({
                   {diffStats.modifications}
                 </DropdownMenuItem>
               ) : null}
-            </>
+            </div>
           ) : null}
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onSelect={async () => {
-              flush?.()
-              const created = await createBranchSvc({
-                id: fileId,
-                fromBranch: active,
-              })
-              await setActiveBranchSvc({ id: fileId, branchName: created })
-              toast.success(`Created branch ${created}`)
-            }}
-          >
-            New branch
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onSelect={() => {
-              setRenameValue(active)
-              setRenameOpen(true)
-            }}
-          >
-            Rename branch
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onSelect={() => setDeleteOpen(true)}
-            data-variant="destructive"
-          >
-            Delete branch
-          </DropdownMenuItem>
-          {active !== "main" ? (
-            <DropdownMenuItem onSelect={() => setMergeOpen(true)}>
-              Merge branch...
+
+          <div className="mt-1.5">
+            <DropdownMenuItem
+              onSelect={async () => {
+                flush?.()
+                const created = await createBranchSvc({
+                  id: fileId,
+                  fromBranch: active,
+                })
+                await setActiveBranchSvc({ id: fileId, branchName: created })
+                toast.success(`Created branch ${created}`)
+              }}
+            >
+              New branch
             </DropdownMenuItem>
-          ) : null}
-          <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onSelect={() => {
+                setRenameValue(active)
+                setRenameOpen(true)
+              }}
+            >
+              Rename branch
+            </DropdownMenuItem>
+            {active !== "main" ? (
+              <DropdownMenuItem onSelect={() => setMergeOpen(true)}>
+                Merge branch...
+              </DropdownMenuItem>
+            ) : null}
+            <DropdownMenuItem
+              onSelect={() => setDeleteOpen(true)}
+              data-variant="destructive"
+            >
+              Delete branch
+            </DropdownMenuItem>
+          </div>
         </DropdownMenuContent>
       </DropdownMenu>
 
