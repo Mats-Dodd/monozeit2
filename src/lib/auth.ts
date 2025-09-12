@@ -30,18 +30,17 @@ export const auth = betterAuth({
   }),
   emailAndPassword: {
     enabled: true,
-    // Disable signup in production, allow in dev
-    disableSignUp: process.env.NODE_ENV === "production",
+    // Sign-up enabled in all environments
+    disableSignUp: false,
     minPasswordLength: process.env.NODE_ENV === "production" ? 8 : 1,
   },
-  trustedOrigins: (
+  trustedOrigins:
     env.NODE_ENV === "production"
-      ? [env.APP_URL].filter(Boolean) as string[]
+      ? ([env.APP_URL].filter(Boolean) as string[])
       : [
           "https://tanstack-start-db-electric-starter.localhost",
           `https://${networkIP}`,
           "http://localhost:5173",
           "http://localhost:5174",
-        ]
-  ),
+        ],
 })
