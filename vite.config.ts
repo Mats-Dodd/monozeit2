@@ -23,7 +23,7 @@ const config = defineConfig({
     }),
     tailwindcss(),
     tanstackStart({
-      target: "netlify",
+      target: "vercel",
       spa: {
         enabled: true,
       },
