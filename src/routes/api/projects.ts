@@ -1,5 +1,6 @@
 import { createServerFileRoute } from "@tanstack/react-start/server"
 import { auth } from "@/lib/auth"
+import { env } from "@/env/server"
 
 const serve = async ({ request }: { request: Request }) => {
   const session = await auth.api.getSession({ headers: request.headers })
@@ -11,7 +12,10 @@ const serve = async ({ request }: { request: Request }) => {
   }
 
   const url = new URL(request.url)
-  const originUrl = new URL("http://localhost:3000/v1/shape")
+  const isProd = env.NODE_ENV === "production"
+  const originUrl = new URL(
+    isProd ? `${env.ELECTRIC_URL ?? ""}/v1/shape` : "http://localhost:3000/v1/shape"
+  )
 
   url.searchParams.forEach((value, key) => {
     // Pass through the Electric protocol query parameters.
@@ -23,6 +27,12 @@ const serve = async ({ request }: { request: Request }) => {
   originUrl.searchParams.set("table", "projects")
   const filter = `owner_id = '${session.user.id}' OR '${session.user.id}' = ANY(shared_user_ids)`
   originUrl.searchParams.set("where", filter)
+  if (isProd && env.ELECTRIC_SECRET) {
+    originUrl.searchParams.set("secret", env.ELECTRIC_SECRET)
+  }
+  if (isProd && env.ELECTRIC_SOURCE_ID) {
+    originUrl.searchParams.set("source_id", env.ELECTRIC_SOURCE_ID)
+  }
 
   const response = await fetch(originUrl)
   const headers = new Headers(response.headers)
