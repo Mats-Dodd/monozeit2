@@ -213,7 +213,7 @@ export default function WorkbenchPane({
     <div className="relative flex h-full w-full flex-col overflow-hidden">
       <div className="relative flex items-center gap-2 px-2">
         <div
-          className="relative flex h-9 flex-1 items-center gap-1.5 overflow-x-auto overflow-y-hidden thin-scrollbar scrollbar-gutter-stable scroll-shadows-x"
+          className="relative flex h-9 flex-1 items-center gap-1.5 overflow-x-auto overflow-y-hidden thin-scrollbar scrollbar-gutter-stable"
           onDragOver={(e) => {
             allowDrop(e)
             handleDragOverPane(e)
