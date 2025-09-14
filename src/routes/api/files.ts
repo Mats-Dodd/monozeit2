@@ -14,7 +14,9 @@ const serve = async ({ request }: { request: Request }) => {
   const url = new URL(request.url)
   const isProd = env.NODE_ENV === "production"
   const originUrl = new URL(
-    isProd ? `${env.ELECTRIC_URL ?? ""}/v1/shape` : "http://localhost:3000/v1/shape"
+    isProd
+      ? `${env.ELECTRIC_URL ?? ""}/v1/shape`
+      : "http://localhost:3000/v1/shape"
   )
 
   url.searchParams.forEach((value, key) => {
