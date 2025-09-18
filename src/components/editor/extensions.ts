@@ -1,16 +1,7 @@
-import {
-  Details,
-  DetailsContent,
-  DetailsSummary,
-} from "@tiptap/extension-details"
-import Emoji, { gitHubEmojis } from "@tiptap/extension-emoji"
-import { TaskItem, TaskList } from "@tiptap/extension-list"
 import { Placeholder } from "@tiptap/extensions"
 import Typography from "@tiptap/extension-typography"
 import { DiffExtension } from "@/lib/extensions/diff-extension"
 import { StarterKit } from "@syfxlin/tiptap-starter-kit"
-
-//details needs to be set in slash command
 
 export const extensions = [
   StarterKit.configure({
@@ -75,16 +66,6 @@ export const extensions = [
     audio: false,
     image: false,
     video: false,
-  }),
-  Details,
-  DetailsContent,
-  DetailsSummary,
-  Emoji.configure({
-    emojis: gitHubEmojis,
-  }),
-  TaskList,
-  TaskItem.configure({
-    // nested: true,
   }),
   Placeholder.configure({
     // Use a placeholder:

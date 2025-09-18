@@ -200,6 +200,9 @@ importers:
       input-otp:
         specifier: ^1.4.2
         version: 1.4.2(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      katex:
+        specifier: ^0.16.22
+        version: 0.16.22
       loro-crdt:
         specifier: ^1.6.0
         version: 1.6.0
