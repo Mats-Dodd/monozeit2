@@ -443,10 +443,24 @@ code {
   color: inherit;
   cursor: pointer;
   text-align: left;
+  position: relative;
+  transition: background 120ms ease;
 }
 .ProseMirror-bm-button:hover,
 .ProseMirror-bm-button[data-active="true"] {
-  background: var(--muted);
+  background: transparent;
+  box-shadow: none;
+}
+.ProseMirror-bm-button:hover::before,
+.ProseMirror-bm-button[data-active="true"]::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 9999px;
+  background: oklch(0.145 0 0);
 }
 
 /* Icon */
@@ -460,6 +474,7 @@ code {
   color: var(--secondary-foreground);
   border: 1px solid var(--border);
 }
+/* Keep icon style unchanged on hover/active */
 
 /* Name + shortcut */
 .ProseMirror-bm-button-name {
