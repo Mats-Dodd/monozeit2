@@ -1,4 +1,4 @@
-import { Placeholder } from "@tiptap/extensions"
+import Placeholder from "@tiptap/extension-placeholder"
 import Typography from "@tiptap/extension-typography"
 import { DiffExtension } from "@/lib/extensions/diff-extension"
 import { StarterKit } from "@syfxlin/tiptap-starter-kit"
