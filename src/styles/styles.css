@@ -384,6 +384,39 @@ code {
   border-radius: var(--radius-lg);
 }
 
+/* Selection toolbar (FloatMenu / ClickMenu) and their tooltips */
+.ProseMirror-fm,
+.ProseMirror-cm-menu {
+  background: var(--popover);
+  color: var(--popover-foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 10px 20px -5px rgb(0 0 0 / 0.15),
+    0 4px 6px -2px rgb(0 0 0 / 0.1);
+}
+
+.ProseMirror-fm-button-popover {
+  background: var(--popover);
+  color: var(--popover-foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 4px 6px;
+  font-size: 12px;
+  box-shadow:
+    0 6px 16px -4px rgb(0 0 0 / 0.15),
+    0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+.ProseMirror-fm-button,
+.ProseMirror-cm button {
+  border-radius: 8px;
+}
+.ProseMirror-fm-button:hover,
+.ProseMirror-cm button:hover {
+  background: var(--muted);
+}
+
 /* Empty state */
 .ProseMirror-bm-empty {
   padding: 8px 10px;
