@@ -42,7 +42,6 @@ function RootDocument({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <head>
-        <base href="/" />
         <HeadContent />
       </head>
       <body>
