@@ -6,6 +6,7 @@ import { registerEditor, unregisterEditor } from "./editor-registry"
 import { LoroDoc } from "loro-crdt"
 import { getDefaultSlashItems, filterSlashItems } from "./slash/suggestions"
 import { SlashMenu } from "./slash/Menu"
+import { SelectionMenu } from "./SelectionMenu"
 
 export function EditorCore({
   fileId,
@@ -43,6 +44,11 @@ export function EditorCore({
     [allItems, slashQuery]
   )
   const [activeIndex, setActiveIndex] = useState(0)
+  const [showSelectionMenu, setShowSelectionMenu] = useState(false)
+  const [selectionMenuPos, setSelectionMenuPos] = useState<{
+    top: number
+    left: number
+  }>({ top: 0, left: 0 })
 
   // keep refs synchronized for reliable keydown handling
   useEffect(() => {
@@ -181,12 +187,83 @@ export function EditorCore({
     setActiveIndex(0)
   }, [editor])
 
+  const detectSelection = useCallback(() => {
+    if (!editor || isSlashOpen) {
+      setShowSelectionMenu(false)
+      return
+    }
+
+    const { state, view } = editor
+    const { from, to } = state.selection
+
+    // Don't show if no selection
+    if (from === to) {
+      setShowSelectionMenu(false)
+      return
+    }
+
+    // Don't show if selection is empty
+    const text = state.doc.textBetween(from, to, " ")
+    if (!text || !text.trim()) {
+      setShowSelectionMenu(false)
+      return
+    }
+
+    // Don't show in code blocks
+    const $from = state.doc.resolve(from)
+    const node = $from.node($from.depth)
+    if (node.type.name === "codeBlock") {
+      setShowSelectionMenu(false)
+      return
+    }
+
+    // Don't show for node selections (like images)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if ((state.selection as any).node) {
+      setShowSelectionMenu(false)
+      return
+    }
+
+    // Show the menu and calculate position
+    setShowSelectionMenu(true)
+    try {
+      const start = view.coordsAtPos(from)
+      const end = view.coordsAtPos(to)
+      const container = containerRef.current
+
+      if (container) {
+        const rect = container.getBoundingClientRect()
+        setSelectionMenuPos({
+          top: Math.min(start.top, end.top) - rect.top - 48, // 48px above selection
+          left: (start.left + end.left) / 2 - rect.left - 100, // center horizontally
+        })
+      } else {
+        setSelectionMenuPos({
+          top: Math.min(start.top, end.top) - 48,
+          left: (start.left + end.left) / 2 - 100,
+        })
+      }
+    } catch {
+      // ignore coord errors
+      setShowSelectionMenu(false)
+    }
+  }, [editor, isSlashOpen])
+
   useEffect(() => {
     if (!editor) return
     registerEditor(fileId, editor)
-    const onSelectionUpdate = () => detectSlash()
-    const onTransaction = () => detectSlash()
-    const onUpdate = () => detectSlash()
+    const onSelectionUpdate = () => {
+      detectSlash()
+      detectSelection()
+    }
+    const onTransaction = () => {
+      detectSlash()
+      detectSelection()
+    }
+    const onUpdate = () => {
+      detectSlash()
+      detectSelection()
+    }
     editor.on("selectionUpdate", onSelectionUpdate)
     editor.on("transaction", onTransaction)
     editor.on("update", onUpdate)
@@ -196,7 +273,7 @@ export function EditorCore({
       editor.off("update", onUpdate)
       unregisterEditor(fileId)
     }
-  }, [editor, fileId, detectSlash])
+  }, [editor, fileId, detectSlash, detectSelection])
 
   return (
     <div className="h-full min-h-0 w-full flex flex-col">
@@ -232,6 +309,15 @@ export function EditorCore({
                 queueMicrotask(() => editor.chain().focus().run())
               }}
             />
+          </div>
+        ) : null}
+        {showSelectionMenu && editor ? (
+          <div
+            className="absolute z-50"
+            style={{ top: selectionMenuPos.top, left: selectionMenuPos.left }}
+            onMouseDown={(e) => e.preventDefault()}
+          >
+            <SelectionMenu editor={editor} />
           </div>
         ) : null}
       </div>
