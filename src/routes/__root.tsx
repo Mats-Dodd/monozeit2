@@ -19,13 +19,35 @@ export const Route = createRootRoute({
         content: `width=device-width, initial-scale=1`,
       },
       {
-        title: `TanStack Start/DB/Electric Starter`,
+        title: `Monozeit`,
       },
     ],
     links: [
       {
         rel: `stylesheet`,
         href: appCss,
+      },
+      {
+        rel: `icon`,
+        href: `/logo.svg?v=1`,
+        type: `image/svg+xml`,
+        sizes: `any`,
+      },
+      {
+        rel: `icon`,
+        href: `/logo192.png`,
+        sizes: `192x192`,
+        type: `image/png`,
+      },
+      {
+        rel: `icon`,
+        href: `/logo512.png`,
+        sizes: `512x512`,
+        type: `image/png`,
+      },
+      {
+        rel: `apple-touch-icon`,
+        href: `/logo192.png`,
       },
     ],
   }),
