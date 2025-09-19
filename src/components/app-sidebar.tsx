@@ -1,4 +1,4 @@
-import { useMatch, useNavigate } from "@tanstack/react-router"
+import { useMatch, useNavigate, Link } from "@tanstack/react-router"
 import {
   Sidebar,
   SidebarContent,
@@ -13,7 +13,8 @@ import {
 } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { FolderIcon, UserIcon } from "lucide-react"
+import { UserIcon } from "lucide-react"
+import { Logo } from "@/components/Logo"
 import {
   Select,
   SelectContent,
@@ -113,13 +114,9 @@ export function AppSidebar({
     <Sidebar variant="inset">
       <SidebarHeader>
         <div className="flex items-center gap-2 px-2 py-1">
-          <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-            <FolderIcon className="size-4" />
-          </div>
-          <div className="grid flex-1 text-left text-sm leading-tight">
-            <span className="truncate font-semibold">TanStack Starter</span>
-            <span className="truncate text-xs">DB + Electric</span>
-          </div>
+          <Link to="/" className="flex items-center gap-2 text-foreground">
+            <Logo size={24} className="text-foreground" aria-label="Monozeit" />
+          </Link>
         </div>
       </SidebarHeader>
 
