@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { registerEditor, unregisterEditor } from "./editor-registry"
 import { LoroDoc } from "loro-crdt"
 import { getDefaultSlashItems, filterSlashItems } from "./slash/suggestions"
+import { SlashMenu } from "./slash/Menu"
 
 export function EditorCore({
   fileId,
@@ -206,36 +207,31 @@ export function EditorCore({
         <EditorContent editor={editor} className="tiptap" />
         {isSlashOpen && filteredItems.length > 0 ? (
           <div
-            className="absolute z-50 bg-white border rounded-md shadow-md min-w-56 py-1"
+            className="absolute z-50"
             style={{ top: menuPos.top, left: menuPos.left }}
             onMouseDown={(e) => e.preventDefault()}
-            role="listbox"
-            aria-activedescendant={`slash-option-${activeIndex}`}
           >
-            {filteredItems.map((item, idx) => (
-              <button
-                key={item.title}
-                className={
-                  "w-full text-left px-3 py-2 text-sm hover:bg-accent " +
-                  (idx === activeIndex ? "bg-accent" : "")
-                }
-                id={`slash-option-${idx}`}
-                role="option"
-                aria-selected={idx === activeIndex}
-                tabIndex={-1}
-                onMouseEnter={() => setActiveIndex(idx)}
-                onClick={() => {
-                  if (!editor || !slashRange) return
-                  item.run({ editor, range: slashRange })
-                  setIsSlashOpen(false)
-                  setSlashQuery("")
-                  setSlashRange(null)
-                  queueMicrotask(() => editor.chain().focus().run())
-                }}
-              >
-                {item.title}
-              </button>
-            ))}
+            <SlashMenu
+              items={filteredItems.map((it) => ({
+                id: it.id ?? it.title,
+                title: it.title,
+                section: it.section,
+                shortcut: it.shortcut,
+                description: it.description,
+                run: it.run,
+              }))}
+              activeIndex={activeIndex}
+              onHoverIndex={(idx) => setActiveIndex(idx)}
+              onSelectIndex={(idx) => {
+                const item = filteredItems[idx]
+                if (!editor || !slashRange || !item) return
+                item.run({ editor, range: slashRange })
+                setIsSlashOpen(false)
+                setSlashQuery("")
+                setSlashRange(null)
+                queueMicrotask(() => editor.chain().focus().run())
+              }}
+            />
           </div>
         ) : null}
       </div>
