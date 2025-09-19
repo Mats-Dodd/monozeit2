@@ -139,15 +139,14 @@ function LandingPage() {
                 <h2 className="text-4xl lg:text-5xl font-bold mb-6 leading-tight">
                   Field
                   <br />
-                  testing
+                  THOUGHTS
                 </h2>
                 <div className="text-sm leading-relaxed mb-6 opacity-80 max-w-md">
                   At its core, this platform functions as a modular intelligence
-                  engine. Each deployment is powered by AI-CORE 7.5, designed to
-                  operate at REAL-TIME / ADAPTIVE speeds.
+                  engine. Each note is a tool for thought.
                 </div>
                 <div className="text-lg font-bold tracking-wider opacity-90">
-                  FORRA.AI
+                  MONOZEIT
                 </div>
               </div>
             </div>
@@ -159,21 +158,20 @@ function LandingPage() {
       <section className="py-20">
         <div className="max-w-4xl mx-auto px-8 text-center">
           <h2 className="text-5xl lg:text-6xl font-bold leading-tight mb-8">
-            Scale to
+            Scale your
             <br />
-            infinity
+            horizons
           </h2>
           <div className="text-sm leading-relaxed max-w-2xl mx-auto opacity-80 mb-12">
             Work is no longer static. It shifts, adapts, and reshapes itself
-            with every new challenge. Forra builds the infrastructure that keeps
-            you ahead of that curve. By aligning AI-driven insight with startup
-            speed, we give teams the ability to experiment, scale, and refine
-            without losing focus. The result is not just efficiency — it&apos;s
-            evolution.
+            with every new challenge. Monozeit builds the infrastructure that
+            keeps you ahead of that curve. It gives teams the ability to
+            experiment, scale, and refine without losing focus. The result is
+            not just efficiency — it&apos;s evolution.
           </div>
 
           <div className="text-xs tracking-wider opacity-50 mb-6">
-            REDEFINING THE WAY WE WORK AT SCALE ///
+            REDEFINING THE WAY YOU WORK///
           </div>
           <div className="text-xs opacity-50">
             {">".repeat(9)}
@@ -193,15 +191,13 @@ function LandingPage() {
                 ONSET
               </div>
               <div className="text-xs leading-relaxed mb-6 opacity-70 max-w-xs">
-                At its core, this platform functions as a modular intelligence
-                engine. Each deployment is powered by AI-CORE 7.5, designed to
-                operate at REAL-TIME / ADAPTIVE speeds.
+                At its core, this is an expression of love.
               </div>
               <div className="text-xs mb-6 opacity-50">{">".repeat(10)}</div>
               <div className="flex items-center justify-between text-xs max-w-xs">
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 bg-foreground"></div>
-                  <span className="opacity-70">USA</span>
+                  <span className="opacity-70">NORTH BEACH, SF</span>
                 </div>
                 <div className="cyber-border px-3 py-1 text-xs">
                   FIELD TESTED
@@ -213,12 +209,12 @@ function LandingPage() {
             <div>
               <div className="text-xs mb-6 opacity-50">{">".repeat(6)}</div>
               <div className="text-xs mb-2 opacity-70">STATUS:</div>
-              <div className="text-xs mb-8 opacity-80">BETA TESTING</div>
+              <div className="text-xs mb-8 opacity-80">ALPHA TESTING</div>
               <div className="flex justify-between text-xs max-w-xs">
                 <span className="opacity-70">2149821-003</span>
                 <div className="text-right opacity-80">
                   <div>VERSION:</div>
-                  <div>V 1.3</div>
+                  <div>V 0.1</div>
                 </div>
               </div>
             </div>
@@ -226,7 +222,7 @@ function LandingPage() {
             {/* Large FWD */}
             <div className="lg:text-right">
               <div className="text-6xl lg:text-8xl font-bold opacity-40 tracking-wider">
-                FWD
+                MONOZEIT
               </div>
             </div>
           </div>
