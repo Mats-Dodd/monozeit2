@@ -200,7 +200,7 @@ code {
 
   /* TipTap content theming */
   .tiptap {
-    @apply px-6 md:px-8 py-4 text-[13px] leading-6 max-w-[80ch] mx-auto;
+    @apply px-6 md:px-8 py-4 text-[13px] leading-6 max-w-[120ch] mx-auto;
   }
   /* ProseMirror expects white-space to be set. Prefer pre-wrap. */
   .tiptap.ProseMirror {
