@@ -46,11 +46,11 @@ function LandingPage() {
               <span className="text-xs">®</span>
             </div>
             <span className="text-xs tracking-wider opacity-70">
-              COMPANY PERFORMANCE ENHANCERS
+              A CALMER PLACE TO THINK, WORK AND BE
             </span>
           </div>
           <div className="flex items-center gap-6 text-xs">
-            <span className="opacity-70">USA</span>
+            <span className="opacity-70">North Beach, SF</span>
             <nav className="flex items-center gap-4">
               <Link
                 to="/login"
