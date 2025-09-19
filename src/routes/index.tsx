@@ -39,7 +39,7 @@ export const Route = createFileRoute(`/`)({
 
 function LandingPage() {
   return (
-    <div className="min-h-screen bg-black text-white cyber-font">
+    <div className="min-h-screen bg-background text-foreground cyber-font">
       {/* Header */}
       <header className="relative z-10">
         <div className="max-w-7xl mx-auto px-8 py-8 flex items-center justify-between">
@@ -57,13 +57,13 @@ function LandingPage() {
             <nav className="flex items-center gap-4">
               <Link
                 to="/login"
-                className="text-white/70 hover:text-white transition-colors"
+                className="text-foreground/70 hover:text-foreground transition-colors"
               >
                 Log in
               </Link>
               <Link
                 to="/app"
-                className="cyber-border px-3 py-1 hover:bg-white hover:text-black transition-all duration-200"
+                className="cyber-border px-3 py-1 hover:bg-foreground hover:text-background transition-all duration-200"
               >
                 Open the app
               </Link>
@@ -110,10 +110,10 @@ function LandingPage() {
                     <div className="w-16 h-16 cyber-border rounded-full flex items-center justify-center relative">
                       <div className="w-8 h-8 cyber-border rounded-full"></div>
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-12 h-12 border border-white/20 rounded-full"></div>
+                        <div className="w-12 h-12 border border-foreground/20 rounded-full"></div>
                       </div>
                     </div>
-                    <div className="flex-1 h-px bg-white opacity-30"></div>
+                    <div className="flex-1 h-px bg-foreground opacity-30"></div>
                     <div className="text-2xl opacity-70">→</div>
                   </div>
                 </div>
@@ -204,7 +204,7 @@ function LandingPage() {
               <div className="text-xs mb-6 opacity-50">{">".repeat(10)}</div>
               <div className="flex items-center justify-between text-xs max-w-xs">
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-white"></div>
+                  <div className="w-4 h-4 bg-foreground"></div>
                   <span className="opacity-70">USA</span>
                 </div>
                 <div className="cyber-border px-3 py-1 text-xs">
