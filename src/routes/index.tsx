@@ -50,7 +50,7 @@ function LandingPage() {
             </span>
           </div>
           <div className="flex items-center gap-6 text-xs">
-            <span className="opacity-70">North Beach, SF</span>
+            <span className="opacity-70">NORTH BEACH, SF</span>
             <nav className="flex items-center gap-4">
               <Link
                 to="/login"
@@ -87,9 +87,8 @@ function LandingPage() {
                 <div className="relative">
                   <div className="flex items-baseline gap-8 mb-6">
                     <h1 className="text-6xl lg:text-7xl font-bold leading-tight">
-                      Start from
+                      Put pen to paper
                       <br />
-                      zero
                     </h1>
                     <div
                       className="text-sm tracking-wider opacity-50"
@@ -98,7 +97,7 @@ function LandingPage() {
                         textOrientation: "mixed",
                       }}
                     >
-                      N<br />Y<br />C
+                      S<br />F
                     </div>
                   </div>
 
