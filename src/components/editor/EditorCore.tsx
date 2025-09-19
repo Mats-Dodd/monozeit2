@@ -21,6 +21,10 @@ export function EditorCore({
   )
 
   const containerRef = useRef<HTMLDivElement>(null)
+  const isSlashOpenRef = useRef(false)
+  const filteredItemsRef = useRef<ReturnType<typeof filterSlashItems>>([])
+  const activeIndexRef = useRef(0)
+  const slashRangeRef = useRef<{ from: number; to: number } | null>(null)
 
   const [isSlashOpen, setIsSlashOpen] = useState(false)
   const [slashQuery, setSlashQuery] = useState("")
@@ -39,6 +43,20 @@ export function EditorCore({
   )
   const [activeIndex, setActiveIndex] = useState(0)
 
+  // keep refs synchronized for reliable keydown handling
+  useEffect(() => {
+    isSlashOpenRef.current = isSlashOpen
+  }, [isSlashOpen])
+  useEffect(() => {
+    filteredItemsRef.current = filteredItems
+  }, [filteredItems])
+  useEffect(() => {
+    activeIndexRef.current = activeIndex
+  }, [activeIndex])
+  useEffect(() => {
+    slashRangeRef.current = slashRange
+  }, [slashRange])
+
   const editor = useEditor(
     {
       extensions,
@@ -47,29 +65,57 @@ export function EditorCore({
       },
       editorProps: {
         handleDOMEvents: {
-          keydown: (_view, event) => {
-            if (!isSlashOpen || filteredItems.length === 0) return false
-            const key = (event as KeyboardEvent).key
+          keydown: (_view, e) => {
+            const event = e as KeyboardEvent
+            if (
+              !isSlashOpenRef.current ||
+              filteredItemsRef.current.length === 0
+            )
+              return false
+            const key = event.key
+            const len = filteredItemsRef.current.length
             if (key === "ArrowDown") {
-              setActiveIndex((i) => (i + 1) % filteredItems.length)
+              const next = (activeIndexRef.current + 1) % len
+              setActiveIndex(next)
+              activeIndexRef.current = next
               event.preventDefault()
+              event.stopPropagation()
               return true
             }
             if (key === "ArrowUp") {
-              setActiveIndex(
-                (i) => (i - 1 + filteredItems.length) % filteredItems.length
-              )
+              const next = (activeIndexRef.current - 1 + len) % len
+              setActiveIndex(next)
+              activeIndexRef.current = next
               event.preventDefault()
+              event.stopPropagation()
+              return true
+            }
+            if (key === "Home") {
+              setActiveIndex(0)
+              activeIndexRef.current = 0
+              event.preventDefault()
+              event.stopPropagation()
+              return true
+            }
+            if (key === "End") {
+              const last = len - 1
+              setActiveIndex(last)
+              activeIndexRef.current = last
+              event.preventDefault()
+              event.stopPropagation()
               return true
             }
             if (key === "Enter") {
-              const item = filteredItems[activeIndex]
-              if (item && slashRange) {
-                item.run({ editor, range: slashRange })
+              const item = filteredItemsRef.current[activeIndexRef.current]
+              const range = slashRangeRef.current
+              if (editor && item && range) {
+                item.run({ editor, range })
                 setIsSlashOpen(false)
                 setSlashQuery("")
                 setSlashRange(null)
                 event.preventDefault()
+                event.stopPropagation()
+                queueMicrotask(() => editor.chain().focus().run())
                 return true
               }
             }
@@ -78,6 +124,8 @@ export function EditorCore({
               setSlashQuery("")
               setSlashRange(null)
               event.preventDefault()
+              event.stopPropagation()
+              queueMicrotask(() => editor?.chain().focus().run())
               return true
             }
             return false
@@ -161,6 +209,8 @@ export function EditorCore({
             className="absolute z-50 bg-white border rounded-md shadow-md min-w-56 py-1"
             style={{ top: menuPos.top, left: menuPos.left }}
             onMouseDown={(e) => e.preventDefault()}
+            role="listbox"
+            aria-activedescendant={`slash-option-${activeIndex}`}
           >
             {filteredItems.map((item, idx) => (
               <button
@@ -169,6 +219,10 @@ export function EditorCore({
                   "w-full text-left px-3 py-2 text-sm hover:bg-accent " +
                   (idx === activeIndex ? "bg-accent" : "")
                 }
+                id={`slash-option-${idx}`}
+                role="option"
+                aria-selected={idx === activeIndex}
+                tabIndex={-1}
                 onMouseEnter={() => setActiveIndex(idx)}
                 onClick={() => {
                   if (!editor || !slashRange) return
@@ -176,6 +230,7 @@ export function EditorCore({
                   setIsSlashOpen(false)
                   setSlashQuery("")
                   setSlashRange(null)
+                  queueMicrotask(() => editor.chain().focus().run())
                 }}
               >
                 {item.title}
