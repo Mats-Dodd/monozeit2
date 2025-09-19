@@ -7,13 +7,9 @@ import {
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { UserIcon } from "lucide-react"
 import { Logo } from "@/components/Logo"
 import {
   Select,
@@ -153,19 +149,6 @@ export function AppSidebar({
       </SidebarContent>
 
       <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton>
-              <UserIcon className="size-4" />
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">
-                  {session.user.name || "User"}
-                </span>
-                <span className="truncate text-xs">{session.user.email}</span>
-              </div>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
         <Button
           variant="outline"
           size="sm"
