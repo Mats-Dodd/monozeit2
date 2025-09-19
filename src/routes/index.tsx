@@ -11,25 +11,22 @@ export const Route = createFileRoute(`/`)({
   },
   head: () => ({
     meta: [
-      { title: "Stones — Collaborative workspace for projects and files" },
+      { title: "Monozeit — A calmer place to think, work and be" },
       {
         name: "description",
-        content:
-          "Organize projects, collaborate in real-time, and edit content with a flexible workbench.",
+        content: "Put pen to paper",
       },
-      { property: "og:title", content: "Stones" },
+      { property: "og:title", content: "Monozeit" },
       {
         property: "og:description",
-        content:
-          "Organize projects, collaborate in real-time, and edit content with a flexible workbench.",
+        content: "Put pen to paper",
       },
       { property: "og:image", content: "/logo512.png" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "Stones" },
+      { name: "twitter:title", content: "Monozeit" },
       {
         name: "twitter:description",
-        content:
-          "Organize projects, collaborate in real-time, and edit content with a flexible workbench.",
+        content: "Put pen to paper",
       },
       { name: "twitter:image", content: "/logo512.png" },
     ],
