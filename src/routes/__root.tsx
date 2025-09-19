@@ -62,9 +62,14 @@ export const Route = createRootRoute({
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(() => {try {const storageKey = 'theme';const stored = localStorage.getItem(storageKey);const system = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';const theme = stored === 'light' || stored === 'dark' ? stored : system;const root = document.documentElement;root.classList.toggle('dark', theme === 'dark');root.style.colorScheme = theme; } catch (_) { /* no-op */ }})()`,
+          }}
+        />
       </head>
       <body>
         {children}

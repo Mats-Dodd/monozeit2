@@ -27,9 +27,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { useMemo, useRef, useState } from "react"
+import { Sun, Moon } from "lucide-react"
 import { createProject } from "@/services/projects"
 import type { ProjectCreateUI } from "@/services/types"
 import { SidebarFileTree } from "@/components/sidebar-file-tree"
+import { setThemeMode } from "@/lib/utils"
 
 interface AppSidebarProps {
   session: {
@@ -74,6 +76,11 @@ export function AppSidebar({
   const [newProjectName, setNewProjectName] = useState("")
   const previousSelectedIdRef = useRef<string | undefined>(selectedProjectId)
   const newProjectInputRef = useRef<HTMLInputElement | null>(null)
+
+  const [isDark, setIsDark] = useState<boolean>(() => {
+    if (typeof document === "undefined") return false
+    return document.documentElement.classList.contains("dark")
+  })
 
   const selectedProjectName = useMemo(() => {
     const found = projects.find((p) => p.id === selectedProjectId)
@@ -149,6 +156,20 @@ export function AppSidebar({
       </SidebarContent>
 
       <SidebarFooter>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="self-start size-7"
+          onClick={() => {
+            const next = !isDark
+            setIsDark(next)
+            setThemeMode(next ? "dark" : "light")
+          }}
+          aria-label="Toggle theme"
+        >
+          {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
+          <span className="sr-only">Toggle theme</span>
+        </Button>
         <Button
           variant="outline"
           size="sm"
