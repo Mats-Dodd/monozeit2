@@ -1,4 +1,5 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router"
+import { Logo } from "@/components/Logo"
 import { authClient } from "@/lib/auth-client"
 import { useState } from "react"
 
@@ -84,7 +85,9 @@ function LoginPage() {
       {/* Header */}
       <header className="relative z-10">
         <div className="max-w-7xl mx-auto px-8 py-8 flex items-center justify-between">
-          <div className="text-sm opacity-70">2149821-003</div>
+          <Link to="/" className="flex items-center gap-2 text-foreground">
+            <Logo size={24} className="text-foreground" aria-label="Monozeit" />
+          </Link>
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 cyber-border rounded-full flex items-center justify-center">
               <span className="text-xs">®</span>
